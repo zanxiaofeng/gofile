@@ -21,7 +21,7 @@ Example:
 
     go get -u github.com/siadat/gofile
 
-### Implementation
+### HTTP/1.1 implementation checklist
 
 - [x] GET and HEAD methods
 - [x] Support keep-alive connections
