@@ -1,9 +1,9 @@
 package main
 
 import (
-	http "./http"
-	log "./log"
 	"github.com/docopt/docopt-go"
+	http "github.com/siadat/gofile/http"
+	log "github.com/siadat/gofile/log"
 )
 
 const usage = `Usage: gofile <port> [-v]`

@@ -1,8 +1,8 @@
 package http
 
 import (
-	log "../log"
 	"fmt"
+	log "github.com/siadat/gofile/log"
 	"math/rand"
 	"net"
 	"strings"

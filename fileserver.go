@@ -1,9 +1,9 @@
 package main
 
 import (
-	http "./http"
 	"errors"
 	"fmt"
+	http "github.com/siadat/gofile/http"
 	"io/ioutil"
 	"mime"
 	"os"
