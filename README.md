@@ -23,9 +23,9 @@ Example:
 
 ### Implementation
 
-[x] GET and HEAD methods
-[x] Support keep-alive connections
-[x] Support chunked transfer encoding
-[x] Requests must include a `Host` header
-[x] Requests with `Connection: close` should be closed
-[x] Support for requests with absolute URLs
+- [x] GET and HEAD methods
+- [x] Support keep-alive connections
+- [x] Support chunked transfer encoding
+- [x] Requests must include a `Host` header
+- [x] Requests with `Connection: close` should be closed
+- [x] Support for requests with absolute URLs
