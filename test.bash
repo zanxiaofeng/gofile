@@ -4,6 +4,10 @@ port=8080
 HTTP11="HTTP/1.1${CRLF}"
 HConn="Connection: close${CRLF}"
 HHost="Host: localhost${CRLF}"
+HIfModifiedPast="If-Modified-Since: $(gdate +"%a, %d %b %Y %T %Z" --date='@1000000000')${CRLF}"
+HIfModifiedFuture="If-Modified-Since: $(gdate +"%a, %d %b %Y %T %Z" --date='@9000000000')${CRLF}"
+echo $HIfModifiedPast
+echo $HIfModifiedFuture
 
 sendreq() {
 	echo "------------------------------------"
@@ -14,6 +18,12 @@ sendreq() {
 # Valid: relative url => 200
 sendreq "GET / ${HTTP11}${HHost}${HConn}"
 sendreq "HEAD / ${HTTP11}${HHost}${HConn}"
+
+# Valid: modified, normal response => 200
+sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HIfModifiedPast}${HConn}"
+
+# Valid: not modified, body should be empty => 304
+sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HIfModifiedFuture}${HConn}"
 
 # Valid: absolute url => 200
 sendreq "GET http://localhost:8080/ ${HTTP11}${HHost}${HConn}"

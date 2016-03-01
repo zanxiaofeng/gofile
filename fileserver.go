@@ -42,17 +42,8 @@ func htmlLink(href, text string) string {
 	return fmt.Sprintf("<a href='%s'>%s</a>", href, text)
 }
 
-func listDir(url string, localFilepath string) (content string, err error) {
-	content += fmt.Sprintf("<h1>Directory Listing for %s</h1>", url)
-	content += fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
-		time.Now().Sub(startTime),
-		http.SocketCounter,
-		runtime.NumGoroutine(),
-		len(history),
-	)
-	content += "<ul>"
-
-	files, status, errMsg := getFilesInDir(localFilepath)
+func filesLis(files []os.FileInfo, url string) (content string) {
+	content = "<ul>"
 	for _, file := range files {
 		filename := file.Name()
 		class := ""
@@ -68,8 +59,21 @@ func listDir(url string, localFilepath string) (content string, err error) {
 
 		content += fmt.Sprintf("<li%s>%s</li>\n", class, htmlLink(fullPath, filename))
 	}
-
 	content += "</ul>"
+	return
+}
+
+func listDir(url string, localFilepath string) (content string, err error) {
+	content += fmt.Sprintf("<h1>Directory Listing for %s</h1>", url)
+	content += fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
+		time.Now().Sub(startTime),
+		http.SocketCounter,
+		runtime.NumGoroutine(),
+		len(history),
+	)
+
+	files, status, errMsg := getFilesInDir(localFilepath)
+	content += filesLis(files, url)
 	content = htmlLayout(content)
 
 	if status != 200 {
@@ -153,11 +157,24 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 		}
 		res.RespondHTML(req)
 	} else {
-		res.BodyBytes, res.ContentType, err = downloadFile(localFilepath)
-		res.Status = 200
+		fileIsModified := true
+		if len(req.Headers["If-Modified-Since"]) > 0 {
+			ifModifiedSince := http.ParseDate(req.Headers["If-Modified-Since"])
+			if !file.ModTime().After(ifModifiedSince) {
+				fileIsModified = false
+			}
+		}
+		if fileIsModified {
+			res.BodyBytes, res.ContentType, err = downloadFile(localFilepath)
+			res.Status = 200
+		} else {
+			res.Status = 304
+		}
+
 		if err != nil {
 			res.Status = 400
 		}
+
 		res.RespondOther(req)
 	}
 }

@@ -2,9 +2,11 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Request struct {
@@ -18,6 +20,14 @@ type Request struct {
 var (
 	reAbsURL = regexp.MustCompile("^https?://[^/]+")
 )
+
+func ParseDate(date string) (t time.Time) {
+	t, err := time.Parse(HTTPTimeFormat, date)
+	if err != nil {
+		fmt.Println("error parsing", err)
+	}
+	return
+}
 
 func (req *Request) ParseInitialLine(line string) (err error) {
 	words := strings.SplitN(line, " ", 3)

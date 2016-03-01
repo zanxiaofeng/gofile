@@ -19,7 +19,7 @@ type Response struct {
 
 const (
 	crlf           = "\r\n"
-	HTTPTimeFormat = "Mon, 02 Jan 2006 15:04:05 GMT"
+	HTTPTimeFormat = "Mon, 02 Jan 2006 15:04:05 MST"
 	ChunkLength    = 1024
 	EmptyLine      = ""
 )
@@ -109,6 +109,11 @@ func respond(req Request, res *Response) {
 	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 
 	if req.Method == "HEAD" {
+		return
+	}
+
+	if res.Status == 304 {
+		// Do not send body because it is not modified.
 		return
 	}
 
