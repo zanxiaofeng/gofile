@@ -29,3 +29,7 @@ Example:
 - [x] Requests must include a `Host` header
 - [x] Requests with `Connection: close` should be closed
 - [x] Support for requests with absolute URLs
+- [ ] If-Modified-Since support
+- [ ] Byte range support
+- [ ] Transparent response compression
+- [ ] Optimize for speed
