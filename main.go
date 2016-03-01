@@ -6,7 +6,7 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
-const usage = `Usage: gofiles <port> [-v]`
+const usage = `Usage: gofile <port> [-v]`
 
 var (
 	optPort    = "8080"

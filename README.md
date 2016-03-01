@@ -1,5 +1,7 @@
 # Gottp
 
+![gofile](/../screenshots/screenshot-0.1.0.png?raw=true "gofile")
+
 A tiny directory listing web server.
 It implementats HTTP/1.1 keepalive and chunked transfer encoding.
 
@@ -7,16 +9,16 @@ This tool is built for learning purpose only. It is not intended to be used in p
 
 ### Usage
 
-    Usage: gofiles <port> [-v]
+    Usage: gofile <port> [-v]
 
 Example:
 
     cd ~/public/
-    gofiles 8080
+    gofile 8080
 
 ### Install
 
-    go get -u github.com/siadat/gofiles
+    go get -u github.com/siadat/gofile
 
 ### Implementation
 
