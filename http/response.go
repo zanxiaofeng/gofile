@@ -97,7 +97,7 @@ func respond(req Request, res *Response) {
 		firstLine,
 		"Connection: keep-alive",
 		fmt.Sprintf("Content-Type: %s", res.ContentType),
-		fmt.Sprintf("Server: Gottp/0.1.0 %s", runtime.Version()),
+		fmt.Sprintf("Server: Gofile/0.1.0 %s", runtime.Version()),
 		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
 	}
 	if isChunked {

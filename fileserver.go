@@ -24,7 +24,7 @@ func htmlLayout(content string) string {
 	return `<!DOCTYPE html>
     <html>
     <head>
-      <title>Gottp</title>
+      <title>Gofile</title>
       <meta charset="utf-8" />
 	  <style>
 	    body { font-family:monospace; padding:0; margin:0; }

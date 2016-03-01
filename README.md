@@ -1,11 +1,12 @@
-# Gottp
+# Gofile
 
-![gofile](/../screenshots/screenshot-0.1.0.png?raw=true "gofile")
 
 A tiny directory listing web server.
 It implementats HTTP/1.1 keepalive and chunked transfer encoding.
 
 This tool is built for learning purpose only. It is not intended to be used in production.
+
+![gofile](/../screenshots/screenshot-0.1.0.png?raw=true "gofile")
 
 ### Usage
 
