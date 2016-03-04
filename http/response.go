@@ -22,7 +22,7 @@ const (
 	HTTPTimeFormat = "Mon, 02 Jan 2006 15:04:05 MST"
 	ChunkLength    = 1024
 	EmptyLine      = ""
-	Version        = "0.2.0"
+	Version        = "0.3.0"
 )
 
 var responsePhrases = map[int]string{

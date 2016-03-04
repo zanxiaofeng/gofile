@@ -10,11 +10,12 @@ This tool is built for learning purpose only. It is not intended to be used in p
 
 ### Usage
 
-    Usage: gofile <port> [-v]
+    Usage: gofile [-v] <port> [<root>]
 
-Example:
+Examples:
 
     gofile 8080
+    gofile 8080 ~/public
 
 ### Install
 

@@ -6,11 +6,12 @@ import (
 	log "github.com/siadat/gofile/log"
 )
 
-const usage = `Usage: gofile [-v] <port>`
+const usage = `Usage: gofile [-v] <port> [<root>]`
 
 var (
 	optPort    = "8080"
 	optVerbose = false
+	optRoot    = ""
 )
 
 func main() {
@@ -19,5 +20,8 @@ func main() {
 		log.Level = log.LevelVerbose
 	}
 	log.Normal("Starting server on port", args["<port>"].(string))
-	http.Serve(args["<port>"].(string), fileServerHandleRequest)
+	if args["<root>"] != nil {
+		optRoot = args["<root>"].(string)
+	}
+	http.Serve(args["<port>"].(string), fileServerHandleRequestGen(optRoot))
 }

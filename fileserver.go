@@ -84,8 +84,14 @@ func listDir(url string, filepath string) (content string, err error) {
 	return
 }
 
-func getRootDir() (root string) {
-	wd, _ := os.Getwd()
+func getRootDir(optRoot string) (root string) {
+	var wd string
+	if len(optRoot) == 0 {
+		wd, _ = os.Getwd()
+	} else {
+		wd = optRoot
+	}
+
 	root, err := fp.Abs(wd)
 
 	if err != nil {
@@ -98,7 +104,7 @@ func getFilepath(requestURI string) (requestedFilepath string, retErr error) {
 	// Note: path.Join removes '..', so the HasPrefix check is safe for paths
 	// that try to traverse parent directory using '..'.
 	if len(rootDir) == 0 {
-		rootDir = getRootDir()
+		rootDir = getRootDir("")
 	}
 	requestedFilepath = path.Join(rootDir, requestURI)
 
@@ -164,6 +170,11 @@ func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, conten
 
 	contentType = mime.TypeByExtension(fp.Ext(filepath))
 	return
+}
+
+func fileServerHandleRequestGen(optRoot string) func(http.Request, http.Response) {
+	rootDir = getRootDir(optRoot)
+	return fileServerHandleRequest
 }
 
 func fileServerHandleRequest(req http.Request, res http.Response) {
