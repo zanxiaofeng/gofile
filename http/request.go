@@ -11,11 +11,12 @@ import (
 )
 
 type Request struct {
-	Method    string
-	URL       string
-	protocol  string
-	Headers   map[string]string
-	LocalAddr net.Addr
+	Method       string
+	URL          string
+	UnescapedURL string
+	protocol     string
+	Headers      map[string]string
+	LocalAddr    net.Addr
 }
 
 var (

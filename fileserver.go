@@ -6,6 +6,7 @@ import (
 	http "github.com/siadat/gofile/http"
 	"io/ioutil"
 	"mime"
+	neturl "net/url"
 	"os"
 	"path"
 	fp "path/filepath"
@@ -42,7 +43,7 @@ func htmlLink(href, text string) string {
 	return fmt.Sprintf("<a href='%s'>%s</a>", href, text)
 }
 
-func filesLis(fileInfos []os.FileInfo, url string) (content string) {
+func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string) (content string) {
 	content = "<ul>"
 	for _, fi := range fileInfos {
 		filename := fi.Name()
@@ -52,7 +53,7 @@ func filesLis(fileInfos []os.FileInfo, url string) (content string) {
 			filename = filename + "/"
 		}
 
-		fullPath := strings.Join([]string{url, fi.Name()}, "/")
+		fullPath := strings.Join([]string{url, neturl.QueryEscape(fi.Name())}, "/")
 		// url could end with a "/" or with no "/", so when joined with
 		// something else using "/" there could be a double slash ie "//"
 		fullPath = strings.Replace(fullPath, "//", "/", 1)
@@ -63,8 +64,8 @@ func filesLis(fileInfos []os.FileInfo, url string) (content string) {
 	return
 }
 
-func listDir(url string, filepath string) (content string, err error) {
-	content += fmt.Sprintf("<h1>Directory Listing for %s</h1>", url)
+func listDir(url string, urlUnescaped string, filepath string) (content string, err error) {
+	content += fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped)
 	content += fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
 		time.Now().Sub(startTime),
 		http.SocketCounter,
@@ -73,7 +74,7 @@ func listDir(url string, filepath string) (content string, err error) {
 	)
 
 	fileInfos, status, errMsg := getFilesInDir(filepath)
-	content += filesLis(fileInfos, url)
+	content += filesLis(fileInfos, url, urlUnescaped)
 	content = htmlLayout(content)
 
 	if status != 200 {
@@ -179,7 +180,9 @@ func fileServerHandleRequestGen(optRoot string) func(http.Request, http.Response
 
 func fileServerHandleRequest(req http.Request, res http.Response) {
 	history = append(history, req.URL)
-	filepath, err := getFilepath(req.URL)
+
+	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL)
+	filepath, err := getFilepath(req.UnescapedURL)
 	if err != nil {
 		res.Status = 401
 		res.Body = err.Error() + "\n"
@@ -196,7 +199,7 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 	}
 
 	if file.IsDir() {
-		res.Body, err = listDir(req.URL, filepath)
+		res.Body, err = listDir(req.URL, req.UnescapedURL, filepath)
 		res.Status = 200
 		if err != nil {
 			res.Status = 400
