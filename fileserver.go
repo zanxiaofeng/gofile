@@ -178,7 +178,6 @@ func parseRangeHeader(headerValue string) (byteRanges []ByteRange) {
 
 func downloadFile(filepath string, ranges []ByteRange) (buff []byte, contentType string, err error) {
 	// TODO at the moment we are respecting the first range only
-	fmt.Println("ranges", ranges)
 	rangeFrom := ranges[0].start
 	rangeTo := ranges[0].end
 
