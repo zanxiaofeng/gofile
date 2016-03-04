@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	log "github.com/siadat/gofile/log"
+	"io"
 	"math/rand"
 	"net"
 	"strings"
@@ -14,7 +15,7 @@ var (
 )
 
 func Serve(optPort string, callback func(Request, Response)) {
-	ln, err := net.Listen("tcp4", fmt.Sprintf(":%s", optPort))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", optPort))
 	if err != nil {
 		panic(err)
 	}
@@ -43,13 +44,27 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		res.Conn.Close()
 	}()
 
-	var requestBuff [1024]byte
+	buffSize := 2048
 	for {
-		reqLen, err := res.Conn.Read(requestBuff[0:])
-		if reqLen == 0 {
+		requestBuff := make([]byte, 0, 8*1024)
+		buff := make([]byte, buffSize)
+
+		var reqLen int
+		var err error
+
+		for {
+			reqLen, err = res.Conn.Read(buff)
+			requestBuff = append(requestBuff, buff[:reqLen]...)
+			if err != nil || reqLen < buffSize {
+				break
+			}
+		}
+
+		if len(requestBuff) == 0 {
 			return
 		}
-		if err != nil {
+
+		if err != nil && err != io.EOF {
 			log.Err("Error while reading socket:", err)
 			return
 		}
