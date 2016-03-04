@@ -6,7 +6,7 @@ import (
 	log "github.com/siadat/gofile/log"
 )
 
-const usage = `Usage: gofile <port> [-v]`
+const usage = `Usage: gofile [-v] <port>`
 
 var (
 	optPort    = "8080"
@@ -14,7 +14,7 @@ var (
 )
 
 func main() {
-	args, _ := docopt.Parse(usage, nil, true, "version 0.2.0", false, true)
+	args, _ := docopt.Parse(usage, nil, true, http.Version, false, true)
 	if args["-v"].(bool) {
 		log.Level = log.LevelVerbose
 	}

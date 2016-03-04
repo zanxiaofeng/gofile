@@ -22,6 +22,7 @@ const (
 	HTTPTimeFormat = "Mon, 02 Jan 2006 15:04:05 MST"
 	ChunkLength    = 1024
 	EmptyLine      = ""
+	Version        = "0.2.0"
 )
 
 var responsePhrases = map[int]string{
@@ -98,7 +99,7 @@ func respond(req Request, res *Response) {
 		"Connection: keep-alive",
 		"Accept-Ranges: byte",
 		fmt.Sprintf("Content-Type: %s", res.ContentType),
-		fmt.Sprintf("Server: Gofile/0.2.0 %s", runtime.Version()),
+		fmt.Sprintf("Server: Gofile/%s %s", Version, runtime.Version()),
 		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
 	}
 
@@ -115,7 +116,6 @@ func respond(req Request, res *Response) {
 	}
 
 	if res.Status == 304 {
-		// Do not send body because it is not modified.
 		return
 	}
 

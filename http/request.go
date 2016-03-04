@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,6 +21,55 @@ type Request struct {
 var (
 	reAbsURL = regexp.MustCompile("^https?://[^/]+")
 )
+
+type ByteRange struct {
+	Start int64
+	End   int64
+}
+
+func ParseByteRangeHeader(headerValue string) (byteRanges []ByteRange) {
+	rangePrefix := "bytes="
+	byteRanges = make([]ByteRange, 0)
+
+	if !strings.HasPrefix(headerValue, rangePrefix) {
+		byteRanges = append(byteRanges, ByteRange{Start: 0, End: -1})
+		return
+	}
+
+	headerValue = headerValue[len(rangePrefix):]
+	// regexp.MustCompile(`^(-\d+|\d+-|\d+-\d+)$`)
+	for _, value := range strings.Split(headerValue, ",") {
+
+		// Let's say we have 10 bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+		// -10 => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+		// -7 => [3, 4, 5, 6, 7, 8, 9]
+		// -2 => [8, 9]
+		// -1 => [9]
+		if val, err := strconv.ParseInt(value, 10, 0); err == nil && val < 0 {
+			byteRanges = append(byteRanges, ByteRange{Start: val, End: -1})
+			continue
+		}
+
+		// 0- => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+		// 3- => [3, 4, 5, 6, 7, 8, 9]
+		if strings.HasSuffix(value, "-") {
+			if val, err := strconv.ParseInt(value[:len(value)-1], 10, 0); err == nil {
+				byteRanges = append(byteRanges, ByteRange{Start: val, End: -1})
+			}
+			continue
+		}
+
+		// 1-1 => [1, 1]
+		// 3-6 => [3, 4, 5, 6]
+		rangeVals := strings.Split(value, "-")
+		val1, err1 := strconv.ParseInt(rangeVals[0], 10, 0)
+		val2, err2 := strconv.ParseInt(rangeVals[1], 10, 0)
+		if err1 == nil && err2 == nil {
+			byteRanges = append(byteRanges, ByteRange{Start: val1, End: val2})
+		}
+	}
+	return
+}
 
 func ParseDate(date string) (t time.Time) {
 	t, err := time.Parse(HTTPTimeFormat, date)

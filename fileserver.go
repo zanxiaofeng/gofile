@@ -10,7 +10,6 @@ import (
 	"path"
 	fp "path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -123,63 +122,10 @@ func getFilesInDir(requestedFilepath string) (fileInfos []os.FileInfo, status in
 	return
 }
 
-type ByteRange struct {
-	start int64
-	end   int64
-}
-
-// func parseInt(str string) int {
-// 	strconv.Parse()
-// }
-
-func parseRangeHeader(headerValue string) (byteRanges []ByteRange) {
-	rangePrefix := "bytes="
-	byteRanges = make([]ByteRange, 0)
-
-	if !strings.HasPrefix(headerValue, rangePrefix) {
-		byteRanges = append(byteRanges, ByteRange{start: 0, end: -1})
-		return
-	}
-
-	headerValue = headerValue[len(rangePrefix):]
-	// regexp.MustCompile(`^(-\d+|\d+-|\d+-\d+)$`)
-	for _, value := range strings.Split(headerValue, ",") {
-
-		// Let's say we have 10 bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-		// -10 => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-		// -7 => [3, 4, 5, 6, 7, 8, 9]
-		// -2 => [8, 9]
-		// -1 => [9]
-		if val, err := strconv.ParseInt(value, 10, 0); err == nil && val < 0 {
-			byteRanges = append(byteRanges, ByteRange{start: val, end: -1})
-			continue
-		}
-
-		// 0- => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-		// 3- => [3, 4, 5, 6, 7, 8, 9]
-		if strings.HasSuffix(value, "-") {
-			if val, err := strconv.ParseInt(value[:len(value)-1], 10, 0); err == nil {
-				byteRanges = append(byteRanges, ByteRange{start: val, end: -1})
-			}
-			continue
-		}
-
-		// 1-1 => [1, 1]
-		// 3-6 => [3, 4, 5, 6]
-		rangeVals := strings.Split(value, "-")
-		val1, err1 := strconv.ParseInt(rangeVals[0], 10, 0)
-		val2, err2 := strconv.ParseInt(rangeVals[1], 10, 0)
-		if err1 == nil && err2 == nil {
-			byteRanges = append(byteRanges, ByteRange{start: val1, end: val2})
-		}
-	}
-	return
-}
-
-func downloadFile(filepath string, ranges []ByteRange) (buff []byte, contentType string, err error) {
+func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, contentType string, err error) {
 	// TODO at the moment we are respecting the first range only
-	rangeFrom := ranges[0].start
-	rangeTo := ranges[0].end
+	rangeFrom := ranges[0].Start
+	rangeTo := ranges[0].End
 
 	f, err := os.Open(filepath)
 	if err != nil {
@@ -257,8 +203,8 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 		}
 	}
 	if fileIsModified {
-		ranges := parseRangeHeader(req.Headers["Range"])
-		res.BodyBytes, res.ContentType, err = downloadFile(filepath, ranges) // ranges[0].start, ranges[0].end)
+		ranges := http.ParseByteRangeHeader(req.Headers["Range"])
+		res.BodyBytes, res.ContentType, err = downloadFile(filepath, ranges)
 	} else {
 		res.Status = 304
 	}
