@@ -98,7 +98,7 @@ func respond(req Request, res *Response) {
 		"Connection: keep-alive",
 		"Accept-Ranges: byte",
 		fmt.Sprintf("Content-Type: %s", res.ContentType),
-		fmt.Sprintf("Server: Gofile/0.1.0 %s", runtime.Version()),
+		fmt.Sprintf("Server: Gofile/0.2.0 %s", runtime.Version()),
 		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
 	}
 

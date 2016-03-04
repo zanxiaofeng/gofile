@@ -14,7 +14,7 @@ var (
 )
 
 func main() {
-	args, _ := docopt.Parse(usage, nil, true, "version 0.1.0", false, true)
+	args, _ := docopt.Parse(usage, nil, true, "version 0.2.0", false, true)
 	if args["-v"].(bool) {
 		log.Level = log.LevelVerbose
 	}
