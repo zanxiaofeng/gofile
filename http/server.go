@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	buffSize    = 2 * 1024
+	maxBuffSize = 64 * 1024
+)
+
 var (
 	SocketCounter = 0
 )
@@ -44,7 +49,6 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		res.Conn.Close()
 	}()
 
-	buffSize := 2048
 	for {
 		requestBuff := make([]byte, 0, 8*1024)
 		buff := make([]byte, buffSize)
@@ -55,6 +59,11 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		for {
 			reqLen, err = res.Conn.Read(buff)
 			requestBuff = append(requestBuff, buff[:reqLen]...)
+
+			if len(requestBuff) > maxBuffSize {
+				break
+			}
+
 			if err != nil || reqLen < buffSize {
 				break
 			}
