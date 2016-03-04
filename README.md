@@ -14,7 +14,6 @@ This tool is built for learning purpose only. It is not intended to be used in p
 
 Example:
 
-    cd ~/public/
     gofile 8080
 
 ### Install
@@ -30,6 +29,6 @@ Example:
 - [x] Requests with `Connection: close` should be closed
 - [x] Support for requests with absolute URLs
 - [x] If-Modified-Since support
-- [ ] Byte range support
+- [x] Byte range support
 - [ ] Transparent response compression
 - [ ] Optimize for speed
