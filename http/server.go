@@ -19,8 +19,9 @@ var (
 	SocketCounter = 0
 )
 
-func Serve(optPort string, callback func(Request, Response)) {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", optPort))
+func Serve(optPort string, requestCallback func(Request, Response)) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%s", optPort))
+	ln, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -38,11 +39,11 @@ func Serve(optPort string, callback func(Request, Response)) {
 		log.Debug("handleConnection #", SocketCounter)
 		req := Request{Headers: make(map[string]string), LocalAddr: conn.LocalAddr()}
 		res := Response{Conn: conn, ConnID: r.Uint32()}
-		go handleConnection(req, res, callback)
+		go handleConnection(req, res, requestCallback)
 	}
 }
 
-func handleConnection(req Request, res Response, callback func(Request, Response)) {
+func handleConnection(req Request, res Response, requestCallback func(Request, Response)) {
 	defer func() {
 		SocketCounter--
 		log.Debug(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.ConnID, SocketCounter))
@@ -52,20 +53,26 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 	for {
 		startTime := time.Now()
 		requestBuff := make([]byte, 0, 8*1024)
-		buff := make([]byte, buffSize)
 
 		var reqLen int
 		var err error
 
 		for {
+			buff := make([]byte, buffSize)
 			reqLen, err = res.Conn.Read(buff)
 			requestBuff = append(requestBuff, buff[:reqLen]...)
 
 			if len(requestBuff) > maxBuffSize {
+				log.Normal("Request is too big, ignoring the rest.")
 				break
 			}
 
-			if err != nil || reqLen < buffSize {
+			if err != nil && err != io.EOF {
+				log.Err("Connection error:", err)
+				break
+			}
+
+			if err == io.EOF || reqLen < buffSize {
 				break
 			}
 		}
@@ -86,8 +93,11 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		err = req.ParseInitialLine(requestLines[0])
 
 		if err != nil {
+			res.BodyChan = make(chan []byte)
+			go func() {
+				res.BodyChan <- []byte(err.Error() + "\n")
+			}()
 			res.Status = 400
-			res.Body = err.Error()
 			res.RespondPlain(req)
 			continue
 		}
@@ -95,15 +105,16 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		// ---------
 		requestIsValid := true
 		log.Normal(fmt.Sprintf("%s sock:%v %s %s",
-			time.Now().Format("2006-01-02@15:04:05-0700"),
+			time.Now().Format("2006-01-02 15:04:05-0700"),
 			res.ConnID,
 			req.LocalAddr,
 			requestLines[0],
 		))
 
 		if len(req.Headers["Host"]) == 0 {
+			res.BodyChan = make(chan []byte)
 			res.Status = 400
-			res.Body = ""
+			close(res.BodyChan)
 			res.RespondPlain(req)
 			requestIsValid = false
 		}
@@ -111,17 +122,20 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 		if req.Method != "GET" && req.Method != "HEAD" {
 			// Other methods are Not Implemented, and not required by the
 			// specs.
+			res.BodyChan = make(chan []byte)
 			res.Status = 501
+			close(res.BodyChan)
 			res.RespondPlain(req)
 			requestIsValid = false
 		}
 
 		if requestIsValid {
-			callback(req, res)
+			res.BodyChan = make(chan []byte)
+			requestCallback(req, res)
 		}
 
 		log.Normal(fmt.Sprintf("%s sock:%v %s Completed in %v",
-			time.Now().Format("2006-01-02@15:04:05-0700"),
+			time.Now().Format("2006-01-02 15:04:05-0700"),
 			res.ConnID,
 			req.LocalAddr,
 			time.Now().Sub(startTime),

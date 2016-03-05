@@ -12,8 +12,7 @@ type Response struct {
 	Conn        net.Conn
 	ConnID      uint32
 	Status      int
-	Body        string
-	BodyBytes   []byte
+	BodyChan    chan []byte
 	ContentType string
 }
 
@@ -70,24 +69,19 @@ var responsePhrases = map[int]string{
 
 func (res *Response) RespondHTML(req Request) {
 	res.ContentType = "text/html"
-	respond(req, res)
+	respondChan(req, res)
 }
 
 func (res *Response) RespondPlain(req Request) {
 	res.ContentType = "text/plain"
-	respond(req, res)
+	respondChan(req, res)
 }
 
 func (res *Response) RespondOther(req Request) {
-	respond(req, res)
+	respondChan(req, res)
 }
 
-func respond(req Request, res *Response) {
-	if len(res.BodyBytes) == 0 && len(res.Body) > 0 {
-		res.BodyBytes = ([]byte)(res.Body)
-	}
-	contentLength := len(res.BodyBytes)
-	isChunked := contentLength > ChunkLength
+func respondChan(req Request, res *Response) {
 	var firstLine string
 	firstLine = fmt.Sprintf("HTTP/1.1 %d %s", res.Status, responsePhrases[res.Status])
 	if len(res.ContentType) == 0 {
@@ -103,11 +97,7 @@ func respond(req Request, res *Response) {
 		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
 	}
 
-	if isChunked {
-		headers = append(headers, fmt.Sprintf("Transfer-Encoding: %s", "chunked"))
-	} else {
-		headers = append(headers, fmt.Sprintf("Content-Length: %d", contentLength))
-	}
+	headers = append(headers, fmt.Sprintf("Transfer-Encoding: %s", "chunked"))
 
 	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 
@@ -123,23 +113,15 @@ func respond(req Request, res *Response) {
 		return
 	}
 
-	for i := 0; i < contentLength; i += ChunkLength {
-		to := i + ChunkLength
-		if to > contentLength {
-			to = contentLength
-		}
+	from := 0
+	for content := range res.BodyChan {
+		to := from + len(content)
+		res.Conn.Write(([]byte)(fmt.Sprintf("%x%s", to-from, crlf)))
 
-		if isChunked {
-			res.Conn.Write(([]byte)(fmt.Sprintf("%x%s", to-i, crlf)))
-		}
+		res.Conn.Write(content)
 
-		res.Conn.Write(res.BodyBytes[i:to])
-
-		if isChunked {
-			res.Conn.Write(([]byte)(fmt.Sprintf("%s", crlf)))
-		}
+		res.Conn.Write(([]byte)(fmt.Sprintf("%s", crlf)))
+		from = to
 	}
-	if isChunked {
-		res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
-	}
+	res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
 }

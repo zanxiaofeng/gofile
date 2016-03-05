@@ -21,7 +21,7 @@ var (
 	history   []string
 )
 
-func htmlLayout(content string) string {
+func htmlLayoutTop() string {
 	return `<!DOCTYPE html>
     <html>
     <head>
@@ -36,15 +36,18 @@ func htmlLayout(content string) string {
 	    li a { color:#29414E; text-decoration:none; display:block; padding:5px 20px; }
 	  </style>
     </head>
-    <body>` + content + `</body></html>`
+    <body>`
+}
+func htmlLayoutBottom() string {
+	return `</body></html>`
 }
 
 func htmlLink(href, text string) string {
 	return fmt.Sprintf("<a href='%s'>%s</a>", href, text)
 }
 
-func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string) (content string) {
-	content = "<ul>"
+func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan chan []byte) {
+	bodyChan <- []byte("<ul>")
 	for _, fi := range fileInfos {
 		filename := fi.Name()
 		class := ""
@@ -58,28 +61,29 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string) (content
 		// something else using "/" there could be a double slash ie "//"
 		fullPath = strings.Replace(fullPath, "//", "/", 1)
 
-		content += fmt.Sprintf("<li%s>%s</li>\n", class, htmlLink(fullPath, filename))
+		bodyChan <- []byte(fmt.Sprintf("<li%s>%s</li>\n", class, htmlLink(fullPath, filename)))
 	}
-	content += "</ul>"
+	bodyChan <- []byte("</ul>")
 	return
 }
 
-func listDir(url string, urlUnescaped string, filepath string) (content string, err error) {
-	content += fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped)
-	content += fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
+func listDirChan(url string, urlUnescaped string, filepath string, bodyChan chan []byte) (err error) {
+	bodyChan <- []byte(htmlLayoutTop())
+	bodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
+	bodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
 		time.Now().Sub(startTime),
 		http.SocketCounter,
 		runtime.NumGoroutine(),
 		len(history),
-	)
+	))
 
 	fileInfos, status, errMsg := getFilesInDir(filepath)
-	content += filesLis(fileInfos, url, urlUnescaped)
-	content = htmlLayout(content)
+	filesLis(fileInfos, url, urlUnescaped, bodyChan)
+	bodyChan <- []byte(htmlLayoutBottom())
 
 	if status != 200 {
 		err = errors.New(errMsg)
-		content = ""
+		// content = ""
 	}
 
 	return
@@ -129,8 +133,8 @@ func getFilesInDir(requestedFilepath string) (fileInfos []os.FileInfo, status in
 	return
 }
 
-func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, contentType string, err error) {
-	// TODO at the moment we are respecting the first range only
+func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []byte) (contentType string, err error) {
+	// NOTE at the moment we are respecting the first range only
 	rangeFrom := ranges[0].Start
 	rangeTo := ranges[0].End
 
@@ -138,7 +142,6 @@ func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, conten
 	if err != nil {
 		return
 	}
-	defer f.Close()
 
 	var fileSize int64
 
@@ -147,15 +150,16 @@ func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, conten
 	}
 
 	if rangeTo < 0 {
-		rangeTo = fileSize + rangeTo // + 1
+		rangeTo = fileSize + rangeTo
 	}
 
 	if rangeFrom < 0 {
-		rangeFrom = fileSize + rangeFrom // + 1
+		rangeFrom = fileSize + rangeFrom
 	}
 
 	rangeFromNew, err := f.Seek(rangeFrom, 0)
 	if err != nil {
+		f.Close()
 		return
 	}
 
@@ -163,13 +167,14 @@ func downloadFile(filepath string, ranges []http.ByteRange) (buff []byte, conten
 		rangeTo = rangeFromNew
 	}
 
-	buff = make([]byte, rangeTo-rangeFromNew+1)
+	defer f.Close()
+	buff := make([]byte, rangeTo-rangeFromNew+1)
 	_, err = f.Read(buff)
 	if err != nil {
 		return
 	}
+	bodyChan <- buff
 
-	contentType = mime.TypeByExtension(fp.Ext(filepath))
 	return
 }
 
@@ -184,26 +189,33 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL)
 	filepath, err := getFilepath(req.UnescapedURL)
 	if err != nil {
+		go func() {
+			defer close(res.BodyChan)
+			res.BodyChan <- []byte(err.Error() + "\n")
+		}()
 		res.Status = 401
-		res.Body = err.Error() + "\n"
 		res.RespondPlain(req)
 		return
 	}
 
 	file, err := os.Stat(filepath)
 	if err != nil {
+		go func() {
+			defer close(res.BodyChan)
+		}()
 		res.Status = 404
-		res.Body = err.Error() + "\n"
 		res.RespondPlain(req)
 		return
 	}
 
 	if file.IsDir() {
-		res.Body, err = listDir(req.URL, req.UnescapedURL, filepath)
+		go func() {
+			defer close(res.BodyChan)
+			err = listDirChan(req.URL, req.UnescapedURL, filepath, res.BodyChan)
+		}()
+
+		// if err != nil { res.Status = 400 }
 		res.Status = 200
-		if err != nil {
-			res.Status = 400
-		}
 		res.RespondHTML(req)
 		return
 	}
@@ -218,7 +230,11 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 	}
 	if fileIsModified {
 		ranges := http.ParseByteRangeHeader(req.Headers["Range"])
-		res.BodyBytes, res.ContentType, err = downloadFile(filepath, ranges)
+		res.ContentType = mime.TypeByExtension(fp.Ext(filepath))
+		go func() {
+			defer close(res.BodyChan)
+			res.ContentType, err = downloadFileChan(filepath, ranges, res.BodyChan)
+		}()
 	} else {
 		res.Status = 304
 	}
