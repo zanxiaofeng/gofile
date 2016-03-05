@@ -50,6 +50,7 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 	}()
 
 	for {
+		startTime := time.Now()
 		requestBuff := make([]byte, 0, 8*1024)
 		buff := make([]byte, buffSize)
 
