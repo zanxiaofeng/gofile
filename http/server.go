@@ -119,6 +119,13 @@ func handleConnection(req Request, res Response, callback func(Request, Response
 			callback(req, res)
 		}
 
+		log.Normal(fmt.Sprintf("%s sock:%v %s Completed in %v",
+			time.Now().Format("2006-01-02@15:04:05-0700"),
+			res.ConnID,
+			req.LocalAddr,
+			time.Now().Sub(startTime),
+		))
+
 		if req.Headers["Connection"] == "close" {
 			res.Conn.Close()
 			break
