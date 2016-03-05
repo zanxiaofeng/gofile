@@ -119,9 +119,9 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 			requestIsValid = false
 		}
 
-		if req.Method != "GET" && req.Method != "HEAD" {
-			// Other methods are Not Implemented, and not required by the
-			// specs.
+		switch req.Method {
+		case "GET", "HEAD":
+		default:
 			res.BodyChan = make(chan []byte)
 			res.Status = 501
 			close(res.BodyChan)

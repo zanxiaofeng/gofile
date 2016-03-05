@@ -105,11 +105,8 @@ func respondChan(req Request, res *Response) {
 		return
 	}
 
-	if res.Status == 304 {
-		return
-	}
-
-	if res.Status == 501 {
+	switch res.Status {
+	case 304, 501:
 		return
 	}
 
@@ -117,9 +114,7 @@ func respondChan(req Request, res *Response) {
 	for content := range res.BodyChan {
 		to := from + len(content)
 		res.Conn.Write(([]byte)(fmt.Sprintf("%x%s", to-from, crlf)))
-
 		res.Conn.Write(content)
-
 		res.Conn.Write(([]byte)(fmt.Sprintf("%s", crlf)))
 		from = to
 	}
