@@ -55,6 +55,10 @@ sendreq "GET http://localhost:8080/ ${HTTP11}${HHost}${HConn}"
 hl "Valid: should not be chunked, no Transfer-Encoding header, must have Content-Length => 200"
 sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HConn}"
 
+hl "Valid: special characters => 200"
+sendreq "GET /testdata/a+b+c+(d)/یک.txt ${HTTP11}${HHost}${HConn}"
+sendreq "GET /testdata/a+b+c+(d)/e+f+g+[h]/test.txt ${HTTP11}${HHost}${HConn}"
+
 hl "Valid: should not found => 404"
 sendreq "GET /foo ${HTTP11}${HHost}${HConn}"
 
