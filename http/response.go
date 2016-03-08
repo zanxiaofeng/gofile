@@ -111,12 +111,28 @@ func respondChan(req Request, res *Response) {
 	}
 
 	from := 0
+	var chunkBuffer []byte
+
 	for content := range res.BodyChan {
-		to := from + len(content)
-		res.Conn.Write(([]byte)(fmt.Sprintf("%x%s", to-from, crlf)))
-		res.Conn.Write(content)
-		res.Conn.Write(([]byte)(fmt.Sprintf("%s", crlf)))
-		from = to
+		if len(chunkBuffer)+len(content) > ChunkLength && len(chunkBuffer) > 0 {
+			to := from + len(chunkBuffer)
+			writeToConn(res.Conn, chunkBuffer, from, to)
+			from = 0
+			chunkBuffer = []byte{}
+		}
+		chunkBuffer = append(chunkBuffer, content...)
 	}
+
+	if len(chunkBuffer) > 0 {
+		writeToConn(res.Conn, chunkBuffer, 0, len(chunkBuffer))
+	}
+
 	res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
+}
+
+func writeToConn(conn net.Conn, content []byte, from int, to int) {
+	written := []byte(fmt.Sprintf("%x%s", to-from, crlf))
+	written = append(written, content...)
+	written = append(written, []byte(fmt.Sprintf("%s", crlf))...)
+	conn.Write(written)
 }
