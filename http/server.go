@@ -51,7 +51,6 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 	}()
 
 	for {
-		startTime := time.Now()
 		requestBuff := make([]byte, 0, 8*1024)
 
 		var reqLen int
@@ -76,6 +75,8 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 				break
 			}
 		}
+
+		startTime := time.Now()
 
 		if len(requestBuff) == 0 {
 			return
