@@ -184,9 +184,9 @@ func fileServerHandleRequestGen(optRoot string) func(http.Request, http.Response
 }
 
 func fileServerHandleRequest(req http.Request, res http.Response) {
-	history = append(history, req.URL)
+	history = append(history, req.URL.Path)
 
-	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL)
+	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL.Path)
 	filepath, err := getFilepath(req.UnescapedURL)
 	if err != nil {
 		go func() {
@@ -211,7 +211,7 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 	if file.IsDir() {
 		go func() {
 			defer close(res.BodyChan)
-			err = listDirChan(req.URL, req.UnescapedURL, filepath, res.BodyChan)
+			err = listDirChan(req.URL.Path, req.UnescapedURL, filepath, res.BodyChan)
 		}()
 
 		// if err != nil { res.Status = 400 }

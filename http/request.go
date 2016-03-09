@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 type Request struct {
 	Method       string
-	URL          string
+	URL          *url.URL
 	UnescapedURL string
 	protocol     string
 	Headers      map[string]string
@@ -87,12 +88,8 @@ func (req *Request) ParseInitialLine(line string) (err error) {
 		return
 	}
 	req.Method = words[0]
-	req.URL = words[1]
+	req.URL, _ = url.Parse(words[1])
 	req.protocol = words[2]
-
-	if reAbsURL.MatchString(req.URL) {
-		req.URL = reAbsURL.ReplaceAllString(req.URL, "")
-	}
 
 	return
 }
