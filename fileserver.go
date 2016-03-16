@@ -142,6 +142,7 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []
 	if err != nil {
 		return
 	}
+	defer f.Close()
 
 	var fileSize int64
 
@@ -167,13 +168,25 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []
 		rangeTo = rangeFromNew
 	}
 
-	defer f.Close()
-	buff := make([]byte, rangeTo-rangeFromNew+1)
-	_, err = f.Read(buff)
-	if err != nil {
-		return
+	var fileReadLen int64 = 1024 * 1024
+	for from := rangeFromNew; ; from += fileReadLen {
+		buff := make([]byte, fileReadLen)
+
+		_, err := f.Seek(from, 0)
+		if err != nil {
+			break
+		}
+
+		readN, readErr := f.Read(buff)
+		if readErr != nil {
+			break
+		}
+		if readN == 0 {
+			break
+		}
+
+		bodyChan <- buff[:readN]
 	}
-	bodyChan <- buff
 
 	return
 }
