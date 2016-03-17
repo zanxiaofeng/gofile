@@ -21,7 +21,7 @@ sendreq() {
 	echo -ne "${ColorReq}"
 	echo -e "$1"
 	echo -ne "${ColorNon}"
-	echo -e "$1" | nc $host $port | head -n 10
+	echo -e "$1" | nc $host $port | head -n 15
 }
 
 hl() {

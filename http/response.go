@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	log "github.com/siadat/gofile/log"
 	"net"
 	"runtime"
 	"strings"
@@ -9,11 +10,12 @@ import (
 )
 
 type Response struct {
-	Conn        net.Conn
-	ConnID      uint32
-	Status      int
-	BodyChan    chan []byte
-	ContentType string
+	Conn          net.Conn
+	ConnID        uint32
+	Status        int
+	BodyChan      chan []byte
+	ContentType   string
+	ContentLength int64
 }
 
 const (
@@ -82,23 +84,53 @@ func (res *Response) RespondOther(req Request) {
 }
 
 func respondChan(req Request, res *Response) {
-	var firstLine string
-	firstLine = fmt.Sprintf("HTTP/1.1 %d %s", res.Status, responsePhrases[res.Status])
+	var headers []string
+
+	if req.RangedReq && res.Status == 200 {
+		res.Status = 206
+	}
+
+	r := req.Ranges[0]
+	if res.ContentLength > 0 {
+		if r.End < 0 {
+			r.End = res.ContentLength + r.End
+		}
+		if r.Start < 0 {
+			r.Start = res.ContentLength + r.Start
+		}
+		if r.Start > r.End {
+			res.Status = 416
+		}
+	}
+
+	headers = append(headers, fmt.Sprintf("HTTP/1.1 %d %s", res.Status, responsePhrases[res.Status]))
+
+	if req.RangedReq && res.ContentLength > 0 {
+		headers = append(headers, fmt.Sprintf("Content-Range: %s-%s/%d",
+			fmt.Sprintf("%d", r.Start),
+			fmt.Sprintf("%d", r.End),
+			res.ContentLength))
+	}
+
 	if len(res.ContentType) == 0 {
 		res.ContentType = "text/plain"
 	}
 
-	headers := []string{
-		firstLine,
+	headers = append(headers,
 		"Connection: keep-alive",
 		"Accept-Ranges: byte",
 		fmt.Sprintf("Content-Type: %s", res.ContentType),
 		fmt.Sprintf("Server: Gofile/%s %s", Version, runtime.Version()),
 		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
-	}
+	)
 
 	headers = append(headers, fmt.Sprintf("Transfer-Encoding: %s", "chunked"))
 
+	if res.ContentLength > 0 {
+		headers = append(headers, fmt.Sprintf("Content-Length: %d", r.Length()))
+	}
+
+	log.Debug(strings.Join(headers, crlf) + crlf + crlf)
 	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 
 	if req.Method == "HEAD" {
@@ -116,7 +148,11 @@ func respondChan(req Request, res *Response) {
 	for content := range res.BodyChan {
 		if len(chunkBuffer)+len(content) > ChunkLength && len(chunkBuffer) > 0 {
 			to := from + len(chunkBuffer)
-			writeToConn(res.Conn, chunkBuffer, from, to)
+			err := writeToConn(res.Conn, chunkBuffer, from, to)
+			if err != nil {
+				fmt.Println("Socket Write Error > ", err)
+				return
+			}
 			from = 0
 			chunkBuffer = []byte{}
 		}
@@ -130,9 +166,10 @@ func respondChan(req Request, res *Response) {
 	res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
 }
 
-func writeToConn(conn net.Conn, content []byte, from int, to int) {
+func writeToConn(conn net.Conn, content []byte, from int, to int) (err error) {
 	written := []byte(fmt.Sprintf("%x%s", to-from, crlf))
 	written = append(written, content...)
 	written = append(written, []byte(fmt.Sprintf("%s", crlf))...)
-	conn.Write(written)
+	_, err = conn.Write(written)
+	return
 }

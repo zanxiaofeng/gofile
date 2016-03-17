@@ -133,7 +133,20 @@ func getFilesInDir(requestedFilepath string) (fileInfos []os.FileInfo, status in
 	return
 }
 
-func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []byte) (contentType string, err error) {
+func getFilesize(filepath string) (fileSize int64) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	if fi, err := f.Stat(); err == nil {
+		fileSize = fi.Size()
+	}
+	return
+}
+
+func downloadFileChan(filepath string, ranges []http.ByteRange, res http.Response) (err error) {
 	// NOTE at the moment we are respecting the first range only
 	rangeFrom := ranges[0].Start
 	rangeTo := ranges[0].End
@@ -145,7 +158,6 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []
 	defer f.Close()
 
 	var fileSize int64
-
 	if fi, err := f.Stat(); err == nil {
 		fileSize = fi.Size()
 	}
@@ -168,11 +180,15 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []
 		rangeTo = rangeFromNew
 	}
 
-	var fileReadLen int64 = 1024 * 1024
-	for from := rangeFromNew; ; from += fileReadLen {
-		buff := make([]byte, fileReadLen)
+	var maxFileReadLen int64 = 1024 * 1024
+	for cursorFrom := rangeFromNew; cursorFrom <= rangeTo; cursorFrom += maxFileReadLen {
+		cursorTo := cursorFrom + maxFileReadLen
+		if cursorTo > rangeTo {
+			cursorTo = rangeTo
+		}
+		buff := make([]byte, cursorTo-cursorFrom+1)
 
-		_, err := f.Seek(from, 0)
+		_, err := f.Seek(cursorFrom, 0)
 		if err != nil {
 			break
 		}
@@ -185,7 +201,8 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, bodyChan chan []
 			break
 		}
 
-		bodyChan <- buff[:readN]
+		res.BodyChan <- buff[:readN]
+		// time.Sleep(time.Millisecond * 10)
 	}
 
 	return
@@ -242,11 +259,11 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 		}
 	}
 	if fileIsModified {
-		ranges := http.ParseByteRangeHeader(req.Headers["Range"])
 		res.ContentType = mime.TypeByExtension(fp.Ext(filepath))
+		res.ContentLength = getFilesize(filepath)
 		go func() {
 			defer close(res.BodyChan)
-			res.ContentType, err = downloadFileChan(filepath, ranges, res.BodyChan)
+			err = downloadFileChan(filepath, req.Ranges, res)
 		}()
 	} else {
 		res.Status = 304

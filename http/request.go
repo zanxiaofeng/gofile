@@ -18,6 +18,8 @@ type Request struct {
 	protocol     string
 	Headers      map[string]string
 	LocalAddr    net.Addr
+	Ranges       []ByteRange
+	RangedReq    bool
 }
 
 var (
@@ -29,7 +31,11 @@ type ByteRange struct {
 	End   int64
 }
 
-func ParseByteRangeHeader(headerValue string) (byteRanges []ByteRange) {
+func (br ByteRange) Length() int64 {
+	return br.End - br.Start + 1
+}
+
+func parseByteRangeHeader(headerValue string) (byteRanges []ByteRange, explicit bool) {
 	rangePrefix := "bytes="
 	byteRanges = make([]ByteRange, 0)
 
@@ -37,6 +43,8 @@ func ParseByteRangeHeader(headerValue string) (byteRanges []ByteRange) {
 		byteRanges = append(byteRanges, ByteRange{Start: 0, End: -1})
 		return
 	}
+
+	explicit = true
 
 	headerValue = headerValue[len(rangePrefix):]
 	// regexp.MustCompile(`^(-\d+|\d+-|\d+-\d+)$`)
@@ -101,4 +109,5 @@ func (req *Request) ParseHeaders(headerLines []string) {
 			req.Headers[headerPair[0]] = headerPair[1]
 		}
 	}
+	req.Ranges, req.RangedReq = parseByteRangeHeader(req.Headers["Range"])
 }
