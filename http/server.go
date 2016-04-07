@@ -76,7 +76,7 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 			}
 		}
 
-		startTime := time.Now()
+		resStartTime := time.Now()
 
 		if len(requestBuff) == 0 {
 			return
@@ -139,7 +139,7 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 			time.Now().Format("2006-01-02 15:04:05-0700"),
 			res.ConnID,
 			req.LocalAddr,
-			time.Now().Sub(startTime),
+			time.Since(resStartTime),
 		))
 
 		if req.Headers["Connection"] == "close" {

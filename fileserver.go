@@ -71,7 +71,7 @@ func listDirChan(url string, urlUnescaped string, filepath string, bodyChan chan
 	bodyChan <- []byte(htmlLayoutTop())
 	bodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
 	bodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
-		time.Now().Sub(startTime),
+		time.Since(startTime),
 		http.SocketCounter,
 		runtime.NumGoroutine(),
 		len(history),
