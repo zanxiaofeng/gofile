@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	buffSize    = 2 * 1024
-	maxBuffSize = 64 * 1024
+	reqBuffLen    = 2 * 1024
+	reqMaxBuffLen = 64 * 1024
 )
 
 var (
@@ -43,6 +43,32 @@ func Serve(optPort string, requestCallback func(Request, Response)) {
 	}
 }
 
+func readRequest(req Request, res Response) (requestBuff []byte, err error) {
+	requestBuff = make([]byte, 0, 8*1024)
+	var reqLen int
+
+	for {
+		buff := make([]byte, reqBuffLen)
+		reqLen, err = res.Conn.Read(buff)
+		requestBuff = append(requestBuff, buff[:reqLen]...)
+
+		if len(requestBuff) > reqMaxBuffLen {
+			log.Normal("Request is too big, ignoring the rest.")
+			break
+		}
+
+		if err != nil && err != io.EOF {
+			log.Err("Connection error:", err)
+			break
+		}
+
+		if err == io.EOF || reqLen < reqBuffLen {
+			break
+		}
+	}
+	return
+}
+
 func handleConnection(req Request, res Response, requestCallback func(Request, Response)) {
 	defer func() {
 		SocketCounter--
@@ -51,30 +77,7 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 	}()
 
 	for {
-		requestBuff := make([]byte, 0, 8*1024)
-
-		var reqLen int
-		var err error
-
-		for {
-			buff := make([]byte, buffSize)
-			reqLen, err = res.Conn.Read(buff)
-			requestBuff = append(requestBuff, buff[:reqLen]...)
-
-			if len(requestBuff) > maxBuffSize {
-				log.Normal("Request is too big, ignoring the rest.")
-				break
-			}
-
-			if err != nil && err != io.EOF {
-				log.Err("Connection error:", err)
-				break
-			}
-
-			if err == io.EOF || reqLen < buffSize {
-				break
-			}
-		}
+		requestBuff, err := readRequest(req, res)
 
 		resStartTime := time.Now()
 
@@ -103,7 +106,6 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 			continue
 		}
 
-		// ---------
 		requestIsValid := true
 		log.Normal(fmt.Sprintf("%s sock:%v %s %s",
 			time.Now().Format("2006-01-02 15:04:05-0700"),

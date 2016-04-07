@@ -71,19 +71,19 @@ var responsePhrases = map[int]string{
 
 func (res *Response) RespondHTML(req Request) {
 	res.ContentType = "text/html"
-	respondChan(req, res)
+	respond(req, res)
 }
 
 func (res *Response) RespondPlain(req Request) {
 	res.ContentType = "text/plain"
-	respondChan(req, res)
+	respond(req, res)
 }
 
 func (res *Response) RespondOther(req Request) {
-	respondChan(req, res)
+	respond(req, res)
 }
 
-func respondChan(req Request, res *Response) {
+func respond(req Request, res *Response) {
 	var headers []string
 
 	if req.RangedReq && res.Status == 200 {

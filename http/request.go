@@ -47,7 +47,6 @@ func parseByteRangeHeader(headerValue string) (byteRanges []ByteRange, explicit 
 	explicit = true
 
 	headerValue = headerValue[len(rangePrefix):]
-	// regexp.MustCompile(`^(-\d+|\d+-|\d+-\d+)$`)
 	for _, value := range strings.Split(headerValue, ",") {
 
 		// Let's say we have 10 bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
