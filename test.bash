@@ -73,5 +73,12 @@ sendreq "GET http://localhost:8080/../ ${HTTP11}${HHost}${HConn}"
 hl "Invalid: bad method => 501"
 sendreq "POST / ${HTTP11}${HHost}${HConn}"
 
+hl "A file larger than the response chunk size (1M) should be identical to the original file"
+largefile="2m.file"
+dd if=/dev/zero of=testdata/"$largefile" bs=2048 count=1024
+wget -O "$largefile" "http://${host}:${port}/testdata/${largefile}"
+diff -s "$largefile" testdata/"$largefile"
+rm "$largefile" testdata/"$largefile"
+
 hl "Valid: keepalive should not disconnect, because no '${HConn}' header is present"
 sendreq "GET / ${HTTP11}${HHost}"
