@@ -1,8 +1,7 @@
 # Gofile
 
-
-A tiny directory listing web server.
-It implementats HTTP/1.1 keepalive and chunked transfer encoding.
+A non-blocking directory listing and file server.
+It implementats HTTP/1.1 keepalive, chunked transfer, and byte range.
 
 This tool is built for learning purpose only. It is not intended to be used in production.
 
