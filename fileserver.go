@@ -182,7 +182,7 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, res http.Respons
 
 	var maxFileReadLen int64 = 1024 * 1024
 	for cursorFrom := rangeFromNew; cursorFrom <= rangeTo; cursorFrom += maxFileReadLen {
-		cursorTo := cursorFrom + maxFileReadLen
+		cursorTo := cursorFrom + maxFileReadLen - 1
 		if cursorTo > rangeTo {
 			cursorTo = rangeTo
 		}
