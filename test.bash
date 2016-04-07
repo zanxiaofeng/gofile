@@ -1,5 +1,6 @@
 host=127.0.0.1
 port=8080
+${testdir}=test-fixtures
 
 CRLF="\r\n"
 HTTP11="HTTP/1.1${CRLF}"
@@ -36,28 +37,28 @@ sendreq "GET / ${HTTP11}${HHost}${HConn}"
 sendreq "HEAD / ${HTTP11}${HHost}${HConn}"
 
 hl "Valid: modified, normal response => 200"
-sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HIfModifiedPast}${HConn}"
+sendreq "GET /${testdir}/date.txt ${HTTP11}${HHost}${HIfModifiedPast}${HConn}"
 
 hl "Valid: not modified, body should be empty => 304"
-sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HIfModifiedFuture}${HConn}"
+sendreq "GET /${testdir}/date.txt ${HTTP11}${HHost}${HIfModifiedFuture}${HConn}"
 
 hl "Valid: range header => 200"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange1}${HConn}"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange2}${HConn}"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange3}${HConn}"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange4}${HConn}"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange5}${HConn}"
-sendreq "GET /testdata/100.txt ${HTTP11}${HHost}${HByteRange6}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange1}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange2}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange3}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange4}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange5}${HConn}"
+sendreq "GET /${testdir}/100.txt ${HTTP11}${HHost}${HByteRange6}${HConn}"
 
 hl "Valid: absolute url => 200"
 sendreq "GET http://localhost:8080/ ${HTTP11}${HHost}${HConn}"
 
 hl "Valid: should not be chunked, no Transfer-Encoding header, must have Content-Length => 200"
-sendreq "GET /testdata/date.txt ${HTTP11}${HHost}${HConn}"
+sendreq "GET /${testdir}/date.txt ${HTTP11}${HHost}${HConn}"
 
 hl "Valid: special characters => 200"
-sendreq "GET /testdata/a+b+c+(d)/یک.txt ${HTTP11}${HHost}${HConn}"
-sendreq "GET /testdata/a+b+c+(d)/e+f+g+[h]/test.txt ${HTTP11}${HHost}${HConn}"
+sendreq "GET /${testdir}/a+b+c+(d)/یک.txt ${HTTP11}${HHost}${HConn}"
+sendreq "GET /${testdir}/a+b+c+(d)/e+f+g+[h]/test.txt ${HTTP11}${HHost}${HConn}"
 
 hl "Valid: should not found => 404"
 sendreq "GET /foo ${HTTP11}${HHost}${HConn}"
@@ -75,10 +76,10 @@ sendreq "POST / ${HTTP11}${HHost}${HConn}"
 
 hl "A file larger than the response chunk size (1M) should be identical to the original file"
 largefile="2m.file"
-dd if=/dev/zero of=testdata/"$largefile" bs=2048 count=1024
-wget -O "$largefile" "http://${host}:${port}/testdata/${largefile}"
-diff -s "$largefile" testdata/"$largefile"
-rm "$largefile" testdata/"$largefile"
+dd if=/dev/zero of=${testdir}/"$largefile" bs=2048 count=1024
+wget -O "$largefile" "http://${host}:${port}/${testdir}/${largefile}"
+diff -s "$largefile" ${testdir}/"$largefile"
+rm "$largefile" ${testdir}/"$largefile"
 
 hl "Valid: keepalive should not disconnect, because no '${HConn}' header is present"
 sendreq "GET / ${HTTP11}${HHost}"
