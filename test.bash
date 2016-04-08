@@ -1,6 +1,6 @@
 host=127.0.0.1
 port=8080
-${testdir}=test-fixtures
+testdir="test-fixtures"
 
 CRLF="\r\n"
 HTTP11="HTTP/1.1${CRLF}"
