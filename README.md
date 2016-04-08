@@ -32,3 +32,12 @@ Examples:
 - [x] Byte range support
 - [ ] Transparent response compression
 - [ ] Optimize for speed
+
+### Hacking
+
+Submit an issue or send a pull request.
+Make sure you `./run-tests.bash` to test your patch.
+
+### Thanks
+
+Thanks @valyala for his feature suggestions.
