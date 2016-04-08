@@ -90,7 +90,7 @@ func ParseDate(date string) (t time.Time) {
 
 func (req *Request) ParseInitialLine(line string) (err error) {
 	words := strings.SplitN(line, " ", 3)
-	if len(words) != 3 {
+	if words[2] != "HTTP/1.1" {
 		err = errors.New("Invalid initial request line.")
 		return
 	}

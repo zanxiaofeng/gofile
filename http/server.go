@@ -99,11 +99,18 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 		if err != nil {
 			res.BodyChan = make(chan []byte)
 			go func() {
+				defer close(res.BodyChan)
 				res.BodyChan <- []byte(err.Error() + "\n")
 			}()
 			res.Status = 400
 			res.RespondPlain(req)
-			continue
+
+			if req.Headers["Connection"] == "close" {
+				res.Conn.Close()
+				break
+			} else {
+				continue
+			}
 		}
 
 		requestIsValid := true
