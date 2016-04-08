@@ -16,8 +16,8 @@ HByteRange5="Range: bytes=-1${CRLF}"
 HByteRange6="Range: bytes=0-10,20-${CRLF}" # Not supported
 
 sendreq() {
-	local ColorReq="\e[94m"
-	local ColorNon="\e[0m"
+	local ColorReq="" # \e[94m"
+	local ColorNon="" # \e[0m"
 	echo # "------------------------------------"
 	echo -ne "${ColorReq}"
 	echo -e "$1"
@@ -27,7 +27,6 @@ sendreq() {
 
 hl() {
 	echo
-	echo "===================================="
 	echo "$1"
 	echo "===================================="
 }

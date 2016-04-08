@@ -19,7 +19,7 @@ var (
 	SocketCounter = 0
 )
 
-func Serve(optPort string, requestCallback func(Request, Response)) {
+func Serve(optPort string, requestCallback func(Request, *Response)) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%s", optPort))
 	ln, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
@@ -39,11 +39,11 @@ func Serve(optPort string, requestCallback func(Request, Response)) {
 		log.Debug("handleConnection #", SocketCounter)
 		req := Request{Headers: make(map[string]string), LocalAddr: conn.LocalAddr()}
 		res := Response{Conn: conn, ConnID: r.Uint32()}
-		go handleConnection(req, res, requestCallback)
+		go handleConnection(req, &res, requestCallback)
 	}
 }
 
-func readRequest(req Request, res Response) (requestBuff []byte, err error) {
+func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 	requestBuff = make([]byte, 0, 8*1024)
 	var reqLen int
 
@@ -69,11 +69,12 @@ func readRequest(req Request, res Response) (requestBuff []byte, err error) {
 	return
 }
 
-func handleConnection(req Request, res Response, requestCallback func(Request, Response)) {
+func handleConnection(req Request, res *Response, requestCallback func(Request, *Response)) {
 	defer func() {
 		SocketCounter--
 		log.Debug(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.ConnID, SocketCounter))
-		res.Conn.Close()
+		// res.Conn.Close()
+		// FIXME this might be called before response is done writing
 	}()
 
 	for {
@@ -96,21 +97,23 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 		req.ParseHeaders(requestLines[1:])
 		err = req.ParseInitialLine(requestLines[0])
 
-		if err != nil {
-			res.BodyChan = make(chan []byte)
-			go func() {
-				defer close(res.BodyChan)
-				res.BodyChan <- []byte(err.Error() + "\n")
-			}()
-			res.Status = 400
-			res.RespondPlain(req)
+		res.BodyChan = make(chan []byte)
+		go res.RespondOther(req)
 
-			if req.Headers["Connection"] == "close" {
-				res.Conn.Close()
-				break
-			} else {
-				continue
-			}
+		if err != nil {
+			defer close(res.BodyChan)
+
+			res.Status = 400
+			res.ContentType = "text/plain"
+
+			res.BodyChan <- []byte(err.Error() + "\n")
+
+			// if req.Headers["Connection"] == "close" {
+			// 	// res.Conn.Close()
+			// 	break
+			// } else {
+			// }
+			continue
 		}
 
 		requestIsValid := true
@@ -122,26 +125,28 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 		))
 
 		if len(req.Headers["Host"]) == 0 {
-			res.BodyChan = make(chan []byte)
+			res.ContentType = "text/plain"
 			res.Status = 400
 			close(res.BodyChan)
-			res.RespondPlain(req)
 			requestIsValid = false
+			// continue
 		}
 
 		switch req.Method {
 		case "GET", "HEAD":
 		default:
-			res.BodyChan = make(chan []byte)
+			res.ContentType = "text/plain"
 			res.Status = 501
 			close(res.BodyChan)
-			res.RespondPlain(req)
 			requestIsValid = false
 		}
 
 		if requestIsValid {
-			res.BodyChan = make(chan []byte)
-			requestCallback(req, res)
+			if req.Method == "HEAD" {
+				close(res.BodyChan)
+			} else {
+				requestCallback(req, res)
+			}
 		}
 
 		log.Normal(fmt.Sprintf("%s sock:%v %s Completed in %v",
@@ -152,7 +157,6 @@ func handleConnection(req Request, res Response, requestCallback func(Request, R
 		))
 
 		if req.Headers["Connection"] == "close" {
-			res.Conn.Close()
 			break
 		}
 	}

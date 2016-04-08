@@ -67,10 +67,10 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan
 	return
 }
 
-func listDirChan(url string, urlUnescaped string, filepath string, bodyChan chan []byte) (err error) {
-	bodyChan <- []byte(htmlLayoutTop())
-	bodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
-	bodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
+func listDirChan(url string, urlUnescaped string, filepath string, res *http.Response) (err error) {
+	res.BodyChan <- []byte(htmlLayoutTop())
+	res.BodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
+	res.BodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
 		time.Since(startTime),
 		http.SocketCounter,
 		runtime.NumGoroutine(),
@@ -78,8 +78,8 @@ func listDirChan(url string, urlUnescaped string, filepath string, bodyChan chan
 	))
 
 	fileInfos, status, errMsg := getFilesInDir(filepath)
-	filesLis(fileInfos, url, urlUnescaped, bodyChan)
-	bodyChan <- []byte(htmlLayoutBottom())
+	filesLis(fileInfos, url, urlUnescaped, res.BodyChan)
+	res.BodyChan <- []byte(htmlLayoutBottom())
 
 	if status != 200 {
 		err = errors.New(errMsg)
@@ -146,7 +146,7 @@ func getFilesize(filepath string) (fileSize int64) {
 	return
 }
 
-func downloadFileChan(filepath string, ranges []http.ByteRange, res http.Response) (err error) {
+func downloadFileChan(filepath string, ranges []http.ByteRange, res *http.Response) (err error) {
 	// NOTE at the moment we are respecting the first range only
 	rangeFrom := ranges[0].Start
 	rangeTo := ranges[0].End
@@ -208,45 +208,36 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, res http.Respons
 	return
 }
 
-func fileServerHandleRequestGen(optRoot string) func(http.Request, http.Response) {
+func fileServerHandleRequestGen(optRoot string) func(http.Request, *http.Response) {
 	rootDir = getRootDir(optRoot)
 	return fileServerHandleRequest
 }
 
-func fileServerHandleRequest(req http.Request, res http.Response) {
+func fileServerHandleRequest(req http.Request, res *http.Response) {
 	history = append(history, req.URL.Path)
 
 	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL.Path)
 	filepath, err := getFilepath(req.UnescapedURL)
 	if err != nil {
-		go func() {
-			defer close(res.BodyChan)
-			res.BodyChan <- []byte(err.Error() + "\n")
-		}()
 		res.Status = 401
-		res.RespondPlain(req)
+		defer close(res.BodyChan)
+		res.BodyChan <- []byte(err.Error() + "\n")
 		return
 	}
 
 	file, err := os.Stat(filepath)
 	if err != nil {
-		go func() {
-			defer close(res.BodyChan)
-		}()
 		res.Status = 404
-		res.RespondPlain(req)
+		defer close(res.BodyChan)
 		return
 	}
 
 	if file.IsDir() {
-		go func() {
-			defer close(res.BodyChan)
-			err = listDirChan(req.URL.Path, req.UnescapedURL, filepath, res.BodyChan)
-		}()
-
-		// if err != nil { res.Status = 400 }
 		res.Status = 200
-		res.RespondHTML(req)
+		res.ContentType = "text/html"
+		defer close(res.BodyChan)
+		err = listDirChan(req.URL.Path, req.UnescapedURL, filepath, res)
+		// if err != nil { res.Status = 400 }
 		return
 	}
 
@@ -258,20 +249,18 @@ func fileServerHandleRequest(req http.Request, res http.Response) {
 			fileIsModified = false
 		}
 	}
+
 	if fileIsModified {
 		res.ContentType = mime.TypeByExtension(fp.Ext(filepath))
 		res.ContentLength = getFilesize(filepath)
-		go func() {
-			defer close(res.BodyChan)
-			err = downloadFileChan(filepath, req.Ranges, res)
-		}()
+		err = downloadFileChan(filepath, req.Ranges, res)
 	} else {
 		res.Status = 304
 	}
 
+	defer close(res.BodyChan)
+
 	if err != nil {
 		res.Status = 400
 	}
-
-	res.RespondOther(req)
 }

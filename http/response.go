@@ -69,22 +69,16 @@ var responsePhrases = map[int]string{
 	505: "HTTP Version not supported",
 }
 
-func (res *Response) RespondHTML(req Request) {
-	res.ContentType = "text/html"
-	respond(req, res)
-}
-
-func (res *Response) RespondPlain(req Request) {
-	res.ContentType = "text/plain"
-	respond(req, res)
-}
-
 func (res *Response) RespondOther(req Request) {
 	respond(req, res)
 }
 
-func respond(req Request, res *Response) {
+func respondHead(req Request, res *Response) {
 	var headers []string
+
+	if res.Status == 0 {
+		res.Status = 200
+	}
 
 	if req.RangedReq && res.Status == 200 {
 		res.Status = 206
@@ -132,38 +126,49 @@ func respond(req Request, res *Response) {
 
 	log.Debug(strings.Join(headers, crlf) + crlf + crlf)
 	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
+}
 
-	if req.Method == "HEAD" {
-		return
-	}
-
-	switch res.Status {
-	case 304, 501:
-		return
-	}
-
+func respond(req Request, res *Response) {
 	from := 0
-	var chunkBuffer []byte
+	var chunkBuff []byte
+	noWriteYet := true
 
 	for content := range res.BodyChan {
-		if len(chunkBuffer)+len(content) > ChunkLength && len(chunkBuffer) > 0 {
-			to := from + len(chunkBuffer)
-			err := writeToConn(res.Conn, chunkBuffer, from, to)
+		if noWriteYet {
+			noWriteYet = false
+			respondHead(req, res)
+			switch res.Status {
+			case 304, 501:
+				break
+			}
+		}
+
+		if len(chunkBuff)+len(content) > ChunkLength && len(chunkBuff) > 0 {
+			to := from + len(chunkBuff)
+			err := writeToConn(res.Conn, chunkBuff, from, to)
 			if err != nil {
 				fmt.Println("Socket Write Error > ", err)
-				return
+				break
 			}
 			from = 0
-			chunkBuffer = []byte{}
+			chunkBuff = []byte{}
 		}
-		chunkBuffer = append(chunkBuffer, content...)
+		chunkBuff = append(chunkBuff, content...)
 	}
 
-	if len(chunkBuffer) > 0 {
-		writeToConn(res.Conn, chunkBuffer, 0, len(chunkBuffer))
+	if len(chunkBuff) > 0 {
+		writeToConn(res.Conn, chunkBuff, 0, len(chunkBuff))
 	}
 
-	res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
+	if noWriteYet {
+		respondHead(req, res)
+	} else {
+		res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
+	}
+
+	if req.Headers["Connection"] == "close" {
+		res.Conn.Close()
+	}
 }
 
 func writeToConn(conn net.Conn, content []byte, from int, to int) (err error) {
