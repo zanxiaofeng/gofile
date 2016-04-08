@@ -4,6 +4,7 @@ testdir="test-fixtures"
 
 CRLF="\r\n"
 HTTP11="HTTP/1.1${CRLF}"
+HTTPBAD="HTTP/BAD${CRLF}"
 HConn="Connection: close${CRLF}"
 HHost="Host: localhost${CRLF}"
 HIfModifiedPast="If-Modified-Since: $(gdate +"%a, %d %b %Y %T %Z" --date='@1000000000')${CRLF}"
@@ -22,7 +23,7 @@ sendreq() {
 	echo -ne "${ColorReq}"
 	echo -e "$1"
 	echo -ne "${ColorNon}"
-	echo -e "$1" | nc $host $port | head -n 15
+	echo -e "$1" | nc $host $port # | head -n 15
 }
 
 hl() {
@@ -73,12 +74,18 @@ sendreq "GET http://localhost:8080/../ ${HTTP11}${HHost}${HConn}"
 hl "Invalid: bad method => 501"
 sendreq "POST / ${HTTP11}${HHost}${HConn}"
 
+hl "Invalid: bad protocol"
+sendreq "GET / ${HTTPBAD}${HHost}${HConn}"
+
 hl "A file larger than the response chunk size (1M) should be identical to the original file"
 largefile="2m.file"
 dd if=/dev/zero of=${testdir}/"$largefile" bs=2048 count=1024
-wget -O "$largefile" "http://${host}:${port}/${testdir}/${largefile}"
+wget --quiet -O "$largefile" "http://${host}:${port}/${testdir}/${largefile}"
 diff -s "$largefile" ${testdir}/"$largefile"
 rm "$largefile" ${testdir}/"$largefile"
 
 hl "Valid: keepalive should not disconnect, because no '${HConn}' header is present"
-sendreq "GET / ${HTTP11}${HHost}"
+sendreq "GET / ${HTTP11}${HHost}" &
+sleep 0.5
+kill %1
+wait

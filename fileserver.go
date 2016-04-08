@@ -70,12 +70,14 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan
 func listDirChan(url string, urlUnescaped string, filepath string, res *http.Response) (err error) {
 	res.BodyChan <- []byte(htmlLayoutTop())
 	res.BodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
-	res.BodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
-		time.Since(startTime),
-		http.SocketCounter,
-		runtime.NumGoroutine(),
-		len(history),
-	))
+	if false {
+		res.BodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
+			time.Since(startTime),
+			http.SocketCounter,
+			runtime.NumGoroutine(),
+			len(history),
+		))
+	}
 
 	fileInfos, status, errMsg := getFilesInDir(filepath)
 	filesLis(fileInfos, url, urlUnescaped, res.BodyChan)

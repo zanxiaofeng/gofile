@@ -101,12 +101,11 @@ func handleConnection(req Request, res *Response, requestCallback func(Request, 
 		go res.RespondOther(req)
 
 		if err != nil {
-			defer close(res.BodyChan)
-
 			res.Status = 400
 			res.ContentType = "text/plain"
 
 			res.BodyChan <- []byte(err.Error() + "\n")
+			close(res.BodyChan)
 
 			// if req.Headers["Connection"] == "close" {
 			// 	// res.Conn.Close()
