@@ -31,7 +31,6 @@ Examples:
 - [x] If-Modified-Since support
 - [x] Byte range support
 - [ ] Transparent response compression
-- [ ] Optimize for speed
 
 ### Hacking
 
