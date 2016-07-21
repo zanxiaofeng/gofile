@@ -2,11 +2,12 @@ package http
 
 import (
 	"fmt"
-	log "github.com/siadat/gofile/log"
 	"net"
 	"runtime"
 	"strings"
 	"time"
+
+	log "github.com/siadat/gofile/log"
 )
 
 type Response struct {

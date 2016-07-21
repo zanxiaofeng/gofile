@@ -2,12 +2,13 @@ package http
 
 import (
 	"fmt"
-	log "github.com/siadat/gofile/log"
 	"io"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
+
+	log "github.com/siadat/gofile/log"
 )
 
 const (

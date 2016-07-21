@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	http "github.com/siadat/gofile/http"
 	"io/ioutil"
 	"mime"
 	neturl "net/url"
@@ -13,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	http "github.com/siadat/gofile/http"
 )
 
 var (
