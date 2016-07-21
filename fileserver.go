@@ -108,7 +108,26 @@ func getRootDir(optRoot string) (root string) {
 	return
 }
 
-func getFilepath(requestURI string) (requestedFilepath string, retErr error) {
+func tryFilepaths(filepath string) (filepathRet string, file os.FileInfo, err error) {
+	filepaths := []string{
+		filepath,
+		fmt.Sprintf("%s.html", filepath),
+		fmt.Sprintf("%s.htm", filepath),
+		fmt.Sprintf("%s/index.html", filepath),
+		fmt.Sprintf("%s/index.htm", filepath),
+	}
+
+	for _, filepathRet = range filepaths {
+		file, err = os.Stat(filepathRet)
+		if err == nil {
+			return filepathRet, file, nil
+		}
+	}
+
+	return filepathRet, file, err
+}
+
+func urlToFilepath(requestURI string) (requestedFilepath string, retErr error) {
 	// Note: path.Join removes '..', so the HasPrefix check is safe for paths
 	// that try to traverse parent directory using '..'.
 	if len(rootDir) == 0 {
@@ -220,7 +239,7 @@ func fileServerHandleRequest(req http.Request, res *http.Response) {
 	history = append(history, req.URL.Path)
 
 	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL.Path)
-	filepath, err := getFilepath(req.UnescapedURL)
+	filepath, err := urlToFilepath(req.UnescapedURL)
 	if err != nil {
 		res.Status = 401
 		defer close(res.BodyChan)
@@ -228,10 +247,11 @@ func fileServerHandleRequest(req http.Request, res *http.Response) {
 		return
 	}
 
-	file, err := os.Stat(filepath)
+	filepath, file, err := tryFilepaths(filepath)
 	if err != nil {
 		res.Status = 404
 		defer close(res.BodyChan)
+		res.BodyChan <- []byte("")
 		return
 	}
 

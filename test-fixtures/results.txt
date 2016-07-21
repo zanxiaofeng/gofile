@@ -10,11 +10,11 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/html
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
-3c9
+3d5
 <!DOCTYPE html>
     <html>
     <head>
@@ -31,9 +31,9 @@ Transfer-Encoding: chunked
     </head>
     <body><h1>Directory Listing for /</h1><ul><li class='dir' ><a href='/.git'>.git/</a></li>
 <li><a href='/.gitignore'>.gitignore</a></li>
+<li><a href='/CHANGELOG.md'>CHANGELOG.md</a></li>
 <li><a href='/README.md'>README.md</a></li>
 <li><a href='/fileserver.go'>fileserver.go</a></li>
-<li><a href='/gofile'>gofile</a></li>
 <li class='dir' ><a href='/http'>http/</a></li>
 <li class='dir' ><a href='/log'>log/</a></li>
 <li><a href='/main.go'>main.go</a></li>
@@ -54,7 +54,7 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -71,7 +71,7 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 24
@@ -94,7 +94,7 @@ HTTP/1.1 304 Not Modified
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -112,7 +112,7 @@ Content-Range: 90-99/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 10
@@ -132,7 +132,7 @@ Content-Range: 90-99/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 10
@@ -152,7 +152,7 @@ Content-Range: 10-10/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 1
@@ -172,7 +172,7 @@ Content-Range: 10-20/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 11
@@ -192,7 +192,7 @@ Content-Range: 99-99/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 1
@@ -212,7 +212,7 @@ Content-Range: 0-10/100
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 11
@@ -233,11 +233,11 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/html
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
-3c9
+3d5
 <!DOCTYPE html>
     <html>
     <head>
@@ -254,9 +254,9 @@ Transfer-Encoding: chunked
     </head>
     <body><h1>Directory Listing for /</h1><ul><li class='dir' ><a href='/.git'>.git/</a></li>
 <li><a href='/.gitignore'>.gitignore</a></li>
+<li><a href='/CHANGELOG.md'>CHANGELOG.md</a></li>
 <li><a href='/README.md'>README.md</a></li>
 <li><a href='/fileserver.go'>fileserver.go</a></li>
-<li><a href='/gofile'>gofile</a></li>
 <li class='dir' ><a href='/http'>http/</a></li>
 <li class='dir' ><a href='/log'>log/</a></li>
 <li><a href='/main.go'>main.go</a></li>
@@ -280,7 +280,7 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 24
@@ -302,7 +302,7 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 6
@@ -321,7 +321,7 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain; charset=utf-8
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 Content-Length: 6
@@ -343,9 +343,11 @@ HTTP/1.1 404 Not Found
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
+
+0
 
 
 Invalid: no 'Host' header => 400
@@ -358,7 +360,7 @@ HTTP/1.1 400 Bad Request
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -374,7 +376,7 @@ HTTP/1.1 401 Unauthorized
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -392,7 +394,7 @@ HTTP/1.1 401 Unauthorized
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -410,7 +412,7 @@ HTTP/1.1 401 Unauthorized
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -431,7 +433,7 @@ HTTP/1.1 501 Not Implemented
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -447,7 +449,7 @@ HTTP/1.1 400 Bad Request
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/plain
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
@@ -471,11 +473,11 @@ HTTP/1.1 200 OK
 Connection: keep-alive
 Accept-Ranges: byte
 Content-Type: text/html
-Server: Gofile/0.3.0 go1.6
+Server: Gofile/0.3.0 go1.7rc1
 Date: [FILTERED BY TEST SCRIPT]
 Transfer-Encoding: chunked
 
-3c9
+3d5
 <!DOCTYPE html>
     <html>
     <head>
@@ -492,9 +494,9 @@ Transfer-Encoding: chunked
     </head>
     <body><h1>Directory Listing for /</h1><ul><li class='dir' ><a href='/.git'>.git/</a></li>
 <li><a href='/.gitignore'>.gitignore</a></li>
+<li><a href='/CHANGELOG.md'>CHANGELOG.md</a></li>
 <li><a href='/README.md'>README.md</a></li>
 <li><a href='/fileserver.go'>fileserver.go</a></li>
-<li><a href='/gofile'>gofile</a></li>
 <li class='dir' ><a href='/http'>http/</a></li>
 <li class='dir' ><a href='/log'>log/</a></li>
 <li><a href='/main.go'>main.go</a></li>
