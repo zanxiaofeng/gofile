@@ -32,12 +32,12 @@ func Serve(optPort string, requestCallback func(Request, *Response)) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Err("Error while accepting new connection", err)
+			log.Error("Error while accepting new connection", err)
 			continue
 		}
 
 		SocketCounter++
-		log.Debug("handleConnection #", SocketCounter)
+		log.Info("handleConnection #", SocketCounter)
 		req := Request{Headers: make(map[string]string), LocalAddr: conn.LocalAddr()}
 		res := Response{Conn: conn, ConnID: r.Uint32()}
 		go handleConnection(req, &res, requestCallback)
@@ -59,7 +59,7 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 		}
 
 		if err != nil && err != io.EOF {
-			log.Err("Connection error:", err)
+			log.Error("Connection error:", err)
 			break
 		}
 
@@ -73,7 +73,7 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 func handleConnection(req Request, res *Response, requestCallback func(Request, *Response)) {
 	defer func() {
 		SocketCounter--
-		log.Debug(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.ConnID, SocketCounter))
+		log.Info(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.ConnID, SocketCounter))
 		// res.Conn.Close()
 		// FIXME this might be called before response is done writing
 	}()
@@ -88,11 +88,11 @@ func handleConnection(req Request, res *Response, requestCallback func(Request, 
 		}
 
 		if err != nil && err != io.EOF {
-			log.Err("Error while reading socket:", err)
+			log.Error("Error while reading socket:", err)
 			return
 		}
 
-		log.Debug(string(requestBuff[0:]))
+		log.Info(string(requestBuff[0:]))
 
 		requestLines := strings.Split(string(requestBuff[0:]), crlf)
 		req.ParseHeaders(requestLines[1:])

@@ -17,7 +17,7 @@ var (
 func main() {
 	args, _ := docopt.Parse(usage, nil, true, http.Version, false, true)
 	if args["-v"].(bool) {
-		log.Level = log.LevelVerbose
+		log.SetVerbose()
 	}
 	log.Normal("Starting server on port", args["<port>"].(string))
 	if args["<root>"] != nil {

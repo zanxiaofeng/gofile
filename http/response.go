@@ -125,7 +125,7 @@ func respondHead(req Request, res *Response) {
 		headers = append(headers, fmt.Sprintf("Content-Length: %d", r.Length()))
 	}
 
-	log.Debug(strings.Join(headers, crlf) + crlf + crlf)
+	log.Info(strings.Join(headers, crlf) + crlf + crlf)
 	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 }
 
