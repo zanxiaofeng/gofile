@@ -69,20 +69,19 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan
 }
 
 func listDirChan(url string, urlUnescaped string, filepath string, res *http.Response) (err error) {
-	res.BodyChan <- []byte(htmlLayoutTop())
-	res.BodyChan <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
+	res.Body <- []byte(htmlLayoutTop())
+	res.Body <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
 	if false {
-		res.BodyChan <- []byte(fmt.Sprintf("<h3>Uptime:%s OpenSockets:%d Goroutines:%d Requests:%d</h3>",
+		res.Body <- []byte(fmt.Sprintf("<h3>Uptime:%s Goroutines:%d Requests:%d</h3>",
 			time.Since(startTime),
-			http.SocketCounter,
 			runtime.NumGoroutine(),
 			len(history),
 		))
 	}
 
 	fileInfos, status, errMsg := getFilesInDir(filepath)
-	filesLis(fileInfos, url, urlUnescaped, res.BodyChan)
-	res.BodyChan <- []byte(htmlLayoutBottom())
+	filesLis(fileInfos, url, urlUnescaped, res.Body)
+	res.Body <- []byte(htmlLayoutBottom())
 
 	if status != 200 {
 		err = errors.New(errMsg)
@@ -223,7 +222,7 @@ func downloadFileChan(filepath string, ranges []http.ByteRange, res *http.Respon
 			break
 		}
 
-		res.BodyChan <- buff[:readN]
+		res.Body <- buff[:readN]
 		// time.Sleep(time.Millisecond * 10)
 	}
 
@@ -238,28 +237,28 @@ func fileServerHandleRequestGen(optRoot string) func(http.Request, *http.Respons
 func fileServerHandleRequest(req http.Request, res *http.Response) {
 	history = append(history, req.URL.Path)
 
-	req.UnescapedURL, _ = neturl.QueryUnescape(req.URL.Path)
-	filepath, err := urlToFilepath(req.UnescapedURL)
+	unescapedURL, _ := neturl.QueryUnescape(req.URL.Path)
+	filepath, err := urlToFilepath(unescapedURL)
 	if err != nil {
 		res.Status = 401
-		defer close(res.BodyChan)
-		res.BodyChan <- []byte(err.Error() + "\n")
+		defer close(res.Body)
+		res.Body <- []byte(err.Error() + "\n")
 		return
 	}
 
 	filepath, file, err := tryFilepaths(filepath)
 	if err != nil {
 		res.Status = 404
-		defer close(res.BodyChan)
-		res.BodyChan <- []byte("")
+		defer close(res.Body)
+		res.Body <- []byte("")
 		return
 	}
 
 	if file.IsDir() {
 		res.Status = 200
 		res.ContentType = "text/html"
-		defer close(res.BodyChan)
-		err = listDirChan(req.URL.Path, req.UnescapedURL, filepath, res)
+		defer close(res.Body)
+		err = listDirChan(req.URL.Path, unescapedURL, filepath, res)
 		// if err != nil { res.Status = 400 }
 		return
 	}
@@ -267,7 +266,7 @@ func fileServerHandleRequest(req http.Request, res *http.Response) {
 	res.Status = 200
 	fileIsModified := true
 	if len(req.Headers["If-Modified-Since"]) > 0 {
-		ifModifiedSince := http.ParseDate(req.Headers["If-Modified-Since"])
+		ifModifiedSince := http.ParseHTTPDate(req.Headers["If-Modified-Since"])
 		if !file.ModTime().After(ifModifiedSince) {
 			fileIsModified = false
 		}
@@ -281,7 +280,7 @@ func fileServerHandleRequest(req http.Request, res *http.Response) {
 		res.Status = 304
 	}
 
-	defer close(res.BodyChan)
+	defer close(res.Body)
 
 	if err != nil {
 		res.Status = 400

@@ -1,3 +1,4 @@
+// Package http implements an HTTP/1.1 server.
 package http
 
 import (
@@ -5,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -17,14 +19,18 @@ const (
 )
 
 var (
-	SocketCounter = 0
+	socketCounter = 0
 )
 
-func Serve(optPort string, requestCallback func(Request, *Response)) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%s", optPort))
+// Serve starts the HTTP server listening on port. For each request, handle is
+// called with the parsed request and response in their own goroutine.
+func Serve(port int, handle func(Request, *Response)) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%d", port))
 	ln, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		panic(err)
+		log.Error(err)
+		os.Exit(1)
+		return
 	}
 
 	r := rand.New(rand.NewSource(99))
@@ -36,11 +42,11 @@ func Serve(optPort string, requestCallback func(Request, *Response)) {
 			continue
 		}
 
-		SocketCounter++
-		log.Info("handleConnection #", SocketCounter)
-		req := Request{Headers: make(map[string]string), LocalAddr: conn.LocalAddr()}
-		res := Response{Conn: conn, ConnID: r.Uint32()}
-		go handleConnection(req, &res, requestCallback)
+		socketCounter++
+		log.Info("handleConnection #", socketCounter)
+		req := Request{Headers: make(map[string]string)}
+		res := Response{conn: conn, connID: r.Uint32()}
+		go handleConnection(req, &res, handle)
 	}
 }
 
@@ -50,7 +56,7 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 
 	for {
 		buff := make([]byte, reqBuffLen)
-		reqLen, err = res.Conn.Read(buff)
+		reqLen, err = res.conn.Read(buff)
 		requestBuff = append(requestBuff, buff[:reqLen]...)
 
 		if len(requestBuff) > reqMaxBuffLen {
@@ -70,11 +76,11 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 	return
 }
 
-func handleConnection(req Request, res *Response, requestCallback func(Request, *Response)) {
+func handleConnection(req Request, res *Response, handle func(Request, *Response)) {
 	defer func() {
-		SocketCounter--
-		log.Info(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.ConnID, SocketCounter))
-		// res.Conn.Close()
+		socketCounter--
+		log.Info(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.connID, socketCounter))
+		// res.conn.Close()
 		// FIXME this might be called before response is done writing
 	}()
 
@@ -95,21 +101,21 @@ func handleConnection(req Request, res *Response, requestCallback func(Request, 
 		log.Info(string(requestBuff[0:]))
 
 		requestLines := strings.Split(string(requestBuff[0:]), crlf)
-		req.ParseHeaders(requestLines[1:])
-		err = req.ParseInitialLine(requestLines[0])
+		req.parseHeaders(requestLines[1:])
+		err = req.parseInitialLine(requestLines[0])
 
-		res.BodyChan = make(chan []byte)
-		go res.RespondOther(req)
+		res.Body = make(chan []byte)
+		go res.respondOther(req)
 
 		if err != nil {
 			res.Status = 400
 			res.ContentType = "text/plain"
 
-			res.BodyChan <- []byte(err.Error() + "\n")
-			close(res.BodyChan)
+			res.Body <- []byte(err.Error() + "\n")
+			close(res.Body)
 
 			// if req.Headers["Connection"] == "close" {
-			// 	// res.Conn.Close()
+			// 	// res.conn.Close()
 			// 	break
 			// } else {
 			// }
@@ -117,17 +123,16 @@ func handleConnection(req Request, res *Response, requestCallback func(Request, 
 		}
 
 		requestIsValid := true
-		log.Normal(fmt.Sprintf("%s sock:%v %s %s",
+		log.Normal(fmt.Sprintf("%s sock:%v %s",
 			time.Now().Format("2006-01-02 15:04:05-0700"),
-			res.ConnID,
-			req.LocalAddr,
+			res.connID,
 			requestLines[0],
 		))
 
 		if len(req.Headers["Host"]) == 0 {
 			res.ContentType = "text/plain"
 			res.Status = 400
-			close(res.BodyChan)
+			close(res.Body)
 			requestIsValid = false
 			// continue
 		}
@@ -137,22 +142,21 @@ func handleConnection(req Request, res *Response, requestCallback func(Request, 
 		default:
 			res.ContentType = "text/plain"
 			res.Status = 501
-			close(res.BodyChan)
+			close(res.Body)
 			requestIsValid = false
 		}
 
 		if requestIsValid {
 			if req.Method == "HEAD" {
-				close(res.BodyChan)
+				close(res.Body)
 			} else {
-				requestCallback(req, res)
+				handle(req, res)
 			}
 		}
 
-		log.Normal(fmt.Sprintf("%s sock:%v %s Completed in %v",
+		log.Normal(fmt.Sprintf("%s sock:%v Completed in %v",
 			time.Now().Format("2006-01-02 15:04:05-0700"),
-			res.ConnID,
-			req.LocalAddr,
+			res.connID,
 			time.Since(resStartTime),
 		))
 

@@ -3,34 +3,43 @@ package http
 import (
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
+// Protocol specifies the HTTP version, i.e., HTTP/1.1.
+// Protocol string
+
 type Request struct {
-	Method       string
-	URL          *url.URL
-	UnescapedURL string
-	protocol     string
-	Headers      map[string]string
-	LocalAddr    net.Addr
-	Ranges       []ByteRange
-	RangedReq    bool
+	// Method is the HTTP/1.1 method name.
+	Method string
+
+	// URL is the URL requested by the client.
+	URL *url.URL
+
+	// Headers contains pairs of the header key-values.
+	Headers map[string]string
+
+	// Ranges contains all the requested byte-ranges.
+	Ranges []ByteRange
+
+	isRanged bool
 }
 
-var (
-	reAbsURL = regexp.MustCompile("^https?://[^/]+")
-)
-
+// ByteRange is the parsed ranges requested by the client.
+// For example, the client could request the following byte range:
+//
+//     Range: bytes=100-
+//
+// This header is parsed with 100 and -1 (unspecified) being the start and end of the range.
 type ByteRange struct {
 	Start int64
 	End   int64
 }
 
+// Length is the total number of bytes included in the range.
 func (br ByteRange) Length() int64 {
 	return br.End - br.Start + 1
 }
@@ -80,33 +89,39 @@ func parseByteRangeHeader(headerValue string) (byteRanges []ByteRange, explicit 
 	return
 }
 
-func ParseDate(date string) (t time.Time) {
-	t, err := time.Parse(HTTPTimeFormat, date)
+// ParseHTTPDate is a helper for parsing HTTP-dates.
+func ParseHTTPDate(date string) (t time.Time) {
+	t, err := time.Parse(httpTimeFormat, date)
 	if err != nil {
 		fmt.Println("error parsing", err)
 	}
 	return
 }
 
-func (req *Request) ParseInitialLine(line string) (err error) {
+func (req *Request) parseInitialLine(line string) (err error) {
 	words := strings.SplitN(line, " ", 3)
-	if words[2] != "HTTP/1.1" {
-		err = errors.New("Invalid initial request line.")
-		return
+
+	if len(words) < 3 {
+		return errors.New("Invalid initial request line.")
 	}
+
+	if words[2] != "HTTP/1.1" {
+		return errors.New("Invalid initial request line.")
+	}
+
 	req.Method = words[0]
 	req.URL, _ = url.Parse(words[1])
-	req.protocol = words[2]
+	// req.Protocol = words[2]
 
 	return
 }
 
-func (req *Request) ParseHeaders(headerLines []string) {
+func (req *Request) parseHeaders(headerLines []string) {
 	for _, headerLine := range headerLines {
 		headerPair := strings.SplitN(headerLine, ": ", 2)
 		if len(headerPair) == 2 {
 			req.Headers[headerPair[0]] = headerPair[1]
 		}
 	}
-	req.Ranges, req.RangedReq = parseByteRangeHeader(req.Headers["Range"])
+	req.Ranges, req.isRanged = parseByteRangeHeader(req.Headers["Range"])
 }

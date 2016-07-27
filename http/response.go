@@ -11,20 +11,30 @@ import (
 )
 
 type Response struct {
-	Conn          net.Conn
-	ConnID        uint32
-	Status        int
-	BodyChan      chan []byte
-	ContentType   string
+	// Status is the response status code sent to the client.
+	Status int
+
+	// Body is the channel used by the server to write the content of the
+	// response body. Each received array of byte is sent to the client as a HTTP
+	// body chunk.
+	Body chan []byte
+
+	// ContentType is the meme type of the response. The default ContentType is
+	// text/plain.
+	ContentType string
+
+	// ContentLength is the length of the response.
 	ContentLength int64
+
+	conn   net.Conn
+	connID uint32
 }
 
 const (
 	crlf           = "\r\n"
-	HTTPTimeFormat = "Mon, 02 Jan 2006 15:04:05 MST"
-	ChunkLength    = 1024
-	EmptyLine      = ""
-	Version        = "0.3.0"
+	httpTimeFormat = "Mon, 02 Jan 2006 15:04:05 MST"
+	chunkLen       = 1024
+	version        = "0.3.0"
 )
 
 var responsePhrases = map[int]string{
@@ -70,7 +80,7 @@ var responsePhrases = map[int]string{
 	505: "HTTP Version not supported",
 }
 
-func (res *Response) RespondOther(req Request) {
+func (res *Response) respondOther(req Request) {
 	respond(req, res)
 }
 
@@ -81,7 +91,7 @@ func respondHead(req Request, res *Response) {
 		res.Status = 200
 	}
 
-	if req.RangedReq && res.Status == 200 {
+	if req.isRanged && res.Status == 200 {
 		res.Status = 206
 	}
 
@@ -100,7 +110,7 @@ func respondHead(req Request, res *Response) {
 
 	headers = append(headers, fmt.Sprintf("HTTP/1.1 %d %s", res.Status, responsePhrases[res.Status]))
 
-	if req.RangedReq && res.ContentLength > 0 {
+	if req.isRanged && res.ContentLength > 0 {
 		headers = append(headers, fmt.Sprintf("Content-Range: %s-%s/%d",
 			fmt.Sprintf("%d", r.Start),
 			fmt.Sprintf("%d", r.End),
@@ -115,8 +125,8 @@ func respondHead(req Request, res *Response) {
 		"Connection: keep-alive",
 		"Accept-Ranges: byte",
 		fmt.Sprintf("Content-Type: %s", res.ContentType),
-		fmt.Sprintf("Server: Gofile/%s %s", Version, runtime.Version()),
-		fmt.Sprintf("Date: %s", time.Now().UTC().Format(HTTPTimeFormat)),
+		fmt.Sprintf("Server: Gofile/%s %s", version, runtime.Version()),
+		fmt.Sprintf("Date: %s", time.Now().UTC().Format(httpTimeFormat)),
 	)
 
 	headers = append(headers, fmt.Sprintf("Transfer-Encoding: %s", "chunked"))
@@ -126,7 +136,7 @@ func respondHead(req Request, res *Response) {
 	}
 
 	log.Info(strings.Join(headers, crlf) + crlf + crlf)
-	res.Conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
+	res.conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 }
 
 func respond(req Request, res *Response) {
@@ -134,7 +144,7 @@ func respond(req Request, res *Response) {
 	var chunkBuff []byte
 	noWriteYet := true
 
-	for content := range res.BodyChan {
+	for content := range res.Body {
 		if noWriteYet {
 			noWriteYet = false
 			respondHead(req, res)
@@ -144,9 +154,9 @@ func respond(req Request, res *Response) {
 			}
 		}
 
-		if len(chunkBuff)+len(content) > ChunkLength && len(chunkBuff) > 0 {
+		if len(chunkBuff)+len(content) > chunkLen && len(chunkBuff) > 0 {
 			to := from + len(chunkBuff)
-			err := writeToConn(res.Conn, chunkBuff, from, to)
+			err := writeToConn(res.conn, chunkBuff, from, to)
 			if err != nil {
 				fmt.Println("Socket Write Error > ", err)
 				break
@@ -158,17 +168,17 @@ func respond(req Request, res *Response) {
 	}
 
 	if len(chunkBuff) > 0 {
-		writeToConn(res.Conn, chunkBuff, 0, len(chunkBuff))
+		writeToConn(res.conn, chunkBuff, 0, len(chunkBuff))
 	}
 
 	if noWriteYet {
 		respondHead(req, res)
 	} else {
-		res.Conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
+		res.conn.Write(([]byte)(fmt.Sprintf("%d%s%s", 0, crlf, crlf)))
 	}
 
 	if req.Headers["Connection"] == "close" {
-		res.Conn.Close()
+		res.conn.Close()
 	}
 }
 

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/docopt/docopt-go"
 	http "github.com/siadat/gofile/http"
 	log "github.com/siadat/gofile/log"
@@ -9,13 +12,12 @@ import (
 const usage = `Usage: gofile [-v] <port> [<root>]`
 
 var (
-	optPort    = "8080"
 	optVerbose = false
 	optRoot    = ""
 )
 
 func main() {
-	args, _ := docopt.Parse(usage, nil, true, http.Version, false, true)
+	args, _ := docopt.Parse(usage, nil, true, "0.3.0", false, true)
 	if args["-v"].(bool) {
 		log.SetVerbose()
 	}
@@ -23,5 +25,10 @@ func main() {
 	if args["<root>"] != nil {
 		optRoot = args["<root>"].(string)
 	}
-	http.Serve(args["<port>"].(string), fileServerHandleRequestGen(optRoot))
+	port, err := strconv.Atoi(args["<port>"].(string))
+	if err != nil {
+		log.Error("Bad port number")
+		os.Exit(1)
+	}
+	http.Serve(port, fileServerHandleRequestGen(optRoot))
 }
