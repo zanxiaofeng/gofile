@@ -1,11 +1,11 @@
 # Gofile
 
+[![GoDoc](https://godoc.org/github.com/siadat/gofile/http?status.svg)](https://godoc.org/github.com/siadat/gofile/http)
+
 A non-blocking directory listing and file server.
 It implementats HTTP/1.1 keepalive, chunked transfer, and byte range.
 
 The HTTP server implementation provides a channel for writing chunked response. It could be used as a library.
-
-[![GoDoc](https://godoc.org/github.com/siadat/gofile/http?status.svg)](https://godoc.org/github.com/siadat/gofile/http)
 
 This tool is built for learning purpose only. It is not intended to be used in production.
 
