@@ -19,7 +19,7 @@ type Response struct {
 	// body chunk.
 	Body chan []byte
 
-	// ContentType is the meme type of the response. The default ContentType is
+	// ContentType is the MIME type of the response. The default ContentType is
 	// text/plain.
 	ContentType string
 
