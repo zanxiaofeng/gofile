@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/rand"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -22,17 +21,14 @@ var (
 	socketCounter = 0
 )
 
+// Server defines the Handler used by Serve.
+type Server struct {
+	Handler func(Request, *Response)
+}
+
 // Serve starts the HTTP server listening on port. For each request, handle is
 // called with the parsed request and response in their own goroutine.
-func Serve(port int, handle func(Request, *Response)) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%d", port))
-	ln, err := net.ListenTCP("tcp", tcpAddr)
-	if err != nil {
-		log.Error(err)
-		os.Exit(1)
-		return
-	}
-
+func (s Server) Serve(ln net.Listener) error {
 	r := rand.New(rand.NewSource(99))
 
 	for {
@@ -46,8 +42,9 @@ func Serve(port int, handle func(Request, *Response)) {
 		log.Info("handleConnection #", socketCounter)
 		req := Request{Headers: make(map[string]string)}
 		res := Response{conn: conn, connID: r.Uint32()}
-		go handleConnection(req, &res, handle)
+		go handleConnection(req, &res, s.Handler)
 	}
+	return nil
 }
 
 func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
