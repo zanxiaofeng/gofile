@@ -2,12 +2,11 @@ package http
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"runtime"
 	"strings"
 	"time"
-
-	log "github.com/siadat/gofile/log"
 )
 
 type Response struct {
@@ -135,7 +134,9 @@ func respondHead(req Request, res *Response) {
 		headers = append(headers, fmt.Sprintf("Content-Length: %d", r.Length()))
 	}
 
-	log.Info(strings.Join(headers, crlf) + crlf + crlf)
+	if verbose {
+		log.Println(strings.Join(headers, crlf) + crlf + crlf)
+	}
 	res.conn.Write(([]byte)(strings.Join(headers, crlf) + crlf + crlf))
 }
 

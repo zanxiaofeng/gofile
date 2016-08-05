@@ -11,7 +11,7 @@ The HTTP server implementation provides a channel for writing chunked response. 
 
 ### Usage
 
-    Usage: gofile [-v] <port> [<root>]
+    Usage: gofile port [dir]
 
 Examples:
 

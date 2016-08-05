@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-// func TestServe() { }
-
 func ExampleServe(t *testing.T) {
 	server := Server{Handler: func(req Request, res *Response) {
 		defer close(res.Body)

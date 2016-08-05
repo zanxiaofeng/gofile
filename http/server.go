@@ -4,12 +4,11 @@ package http
 import (
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
-
-	log "github.com/siadat/gofile/log"
 )
 
 const (
@@ -19,6 +18,7 @@ const (
 
 var (
 	socketCounter = 0
+	verbose       = false
 )
 
 // Server defines the Handler used by Serve.
@@ -34,12 +34,14 @@ func (s Server) Serve(ln net.Listener) error {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Error("Error while accepting new connection", err)
+			log.Println("Error while accepting new connection", err)
 			continue
 		}
 
 		socketCounter++
-		log.Info("handleConnection #", socketCounter)
+		if verbose {
+			log.Println("handleConnection #", socketCounter)
+		}
 		req := Request{Headers: make(map[string]string)}
 		res := Response{conn: conn, connID: r.Uint32()}
 		go handleConnection(req, &res, s.Handler)
@@ -57,12 +59,12 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 		requestBuff = append(requestBuff, buff[:reqLen]...)
 
 		if len(requestBuff) > reqMaxBuffLen {
-			log.Normal("Request is too big, ignoring the rest.")
+			log.Println("Request is too big, ignoring the rest.")
 			break
 		}
 
 		if err != nil && err != io.EOF {
-			log.Error("Connection error:", err)
+			log.Println("Connection error:", err)
 			break
 		}
 
@@ -76,9 +78,9 @@ func readRequest(req Request, res *Response) (requestBuff []byte, err error) {
 func handleConnection(req Request, res *Response, handle func(Request, *Response)) {
 	defer func() {
 		socketCounter--
-		log.Info(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.connID, socketCounter))
-		// res.conn.Close()
-		// FIXME this might be called before response is done writing
+		if verbose {
+			log.Println(fmt.Sprintf("Closing socket:%d. Total connections:%d", res.connID, socketCounter))
+		}
 	}()
 
 	for {
@@ -91,11 +93,13 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 		}
 
 		if err != nil && err != io.EOF {
-			log.Error("Error while reading socket:", err)
+			log.Println("Error while reading socket:", err)
 			return
 		}
 
-		log.Info(string(requestBuff[0:]))
+		if verbose {
+			log.Println(string(requestBuff[0:]))
+		}
 
 		requestLines := strings.Split(string(requestBuff[0:]), crlf)
 		req.parseHeaders(requestLines[1:])
@@ -111,17 +115,11 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 			res.Body <- []byte(err.Error() + "\n")
 			close(res.Body)
 
-			// if req.Headers["Connection"] == "close" {
-			// 	// res.conn.Close()
-			// 	break
-			// } else {
-			// }
 			continue
 		}
 
 		requestIsValid := true
-		log.Normal(fmt.Sprintf("%s sock:%v %s",
-			time.Now().Format("2006-01-02 15:04:05-0700"),
+		log.Println(fmt.Sprintf("sock:%v %s",
 			res.connID,
 			requestLines[0],
 		))
@@ -131,7 +129,6 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 			res.Status = 400
 			close(res.Body)
 			requestIsValid = false
-			// continue
 		}
 
 		switch req.Method {
@@ -151,8 +148,7 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 			}
 		}
 
-		log.Normal(fmt.Sprintf("%s sock:%v Completed in %v",
-			time.Now().Format("2006-01-02 15:04:05-0700"),
+		log.Println(fmt.Sprintf("sock:%v Completed in %v",
 			res.connID,
 			time.Since(resStartTime),
 		))

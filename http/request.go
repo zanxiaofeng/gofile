@@ -9,9 +9,6 @@ import (
 	"time"
 )
 
-// Protocol specifies the HTTP version, i.e., HTTP/1.1.
-// Protocol string
-
 type Request struct {
 	// Method is the HTTP/1.1 method name.
 	Method string
@@ -111,7 +108,6 @@ func (req *Request) parseInitialLine(line string) (err error) {
 
 	req.Method = words[0]
 	req.URL, _ = url.Parse(words[1])
-	// req.Protocol = words[2]
 
 	return
 }
