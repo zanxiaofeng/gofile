@@ -41,4 +41,4 @@ Make sure you `./run-tests.bash` to test your patch.
 
 ### Thanks
 
-Thanks @valyala for his feature suggestions.
+Thanks @valyala for his feature suggestions. Thanks @maruel for reviewing the http package.
