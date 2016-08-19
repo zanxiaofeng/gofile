@@ -22,11 +22,11 @@ var (
 	history   []string
 )
 
-func htmlLayoutTop() string {
-	return `<!DOCTYPE html>
+func htmlLayoutTop(title string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
     <html>
     <head>
-      <title>Gofile</title>
+      <title>%s | Gofile</title>
       <meta charset="utf-8" />
 	  <style>
 	    body { font-family:monospace; padding:0; margin:0; }
@@ -37,7 +37,7 @@ func htmlLayoutTop() string {
 	    li a { color:#29414E; text-decoration:none; display:block; padding:5px 20px; }
 	  </style>
     </head>
-    <body>`
+    <body>`, title)
 }
 func htmlLayoutBottom() string {
 	return `</body></html>`
@@ -69,7 +69,7 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan
 }
 
 func listDirChan(url string, urlUnescaped string, filepath string, res *http.Response) (err error) {
-	res.Body <- []byte(htmlLayoutTop())
+	res.Body <- []byte(htmlLayoutTop(url))
 	res.Body <- []byte(fmt.Sprintf("<h1>Directory Listing for %s</h1>", urlUnescaped))
 	if false {
 		res.Body <- []byte(fmt.Sprintf("<h3>Uptime:%s Goroutines:%d Requests:%d</h3>",
