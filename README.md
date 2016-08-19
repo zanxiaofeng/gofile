@@ -1,6 +1,7 @@
 # Gofile
 
 [![GoDoc](https://godoc.org/github.com/siadat/gofile/http?status.svg)](https://godoc.org/github.com/siadat/gofile/http)
+[![Build Status](https://travis-ci.org/siadat/gofile.svg?branch=master)](https://travis-ci.org/siadat/gofile)
 
 A non-blocking directory listing and file server.
 It implementats HTTP/1.1 keepalive, chunked transfer, and byte range.
