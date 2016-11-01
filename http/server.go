@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net"
 	"strings"
-	"time"
 )
 
 const (
@@ -86,8 +85,6 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 	for {
 		requestBuff, err := readRequest(req, res)
 
-		resStartTime := time.Now()
-
 		if len(requestBuff) == 0 {
 			return
 		}
@@ -119,10 +116,7 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 		}
 
 		requestIsValid := true
-		log.Println(fmt.Sprintf("sock:%v %s",
-			res.connID,
-			requestLines[0],
-		))
+		log.Println(fmt.Sprintf("%s", requestLines[0]))
 
 		if len(req.Headers["Host"]) == 0 {
 			res.ContentType = "text/plain"
@@ -147,11 +141,6 @@ func handleConnection(req Request, res *Response, handle func(Request, *Response
 				handle(req, res)
 			}
 		}
-
-		log.Println(fmt.Sprintf("sock:%v Completed in %v",
-			res.connID,
-			time.Since(resStartTime),
-		))
 
 		if req.Headers["Connection"] == "close" {
 			break
