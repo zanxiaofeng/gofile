@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	neturl "net/url"
 	"os"
 	"path"
@@ -43,8 +42,11 @@ func htmlLayoutBottom() string {
 	return `</body></html>`
 }
 
-func htmlLink(href, text string) string {
-	return fmt.Sprintf("<a href='%s'>%s</a>", href, text)
+func htmlLink(href, text string, isDir bool) string {
+	if isDir {
+		return fmt.Sprintf("<a href='%s'>%s</a>", href, text)
+	}
+	return fmt.Sprintf("<a>%s</a>", text)
 }
 
 func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan chan []byte) {
@@ -62,7 +64,7 @@ func filesLis(fileInfos []os.FileInfo, url string, urlUnescaped string, bodyChan
 		// something else using "/" there could be a double slash ie "//"
 		fullPath = strings.Replace(fullPath, "//", "/", 1)
 
-		bodyChan <- []byte(fmt.Sprintf("<li%s>%s</li>\n", class, htmlLink(fullPath, filename)))
+		bodyChan <- []byte(fmt.Sprintf("<li%s>%s</li>\n", class, htmlLink(fullPath, filename, fi.IsDir())))
 	}
 	bodyChan <- []byte("</ul>")
 	return
@@ -167,68 +169,6 @@ func getFilesize(filepath string) (fileSize int64) {
 	return
 }
 
-func downloadFileChan(filepath string, ranges []http.ByteRange, res *http.Response) (err error) {
-	// NOTE at the moment we are respecting the first range only
-	rangeFrom := ranges[0].Start
-	rangeTo := ranges[0].End
-
-	f, err := os.Open(filepath)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	var fileSize int64
-	if fi, err := f.Stat(); err == nil {
-		fileSize = fi.Size()
-	}
-
-	if rangeTo < 0 {
-		rangeTo = fileSize + rangeTo
-	}
-
-	if rangeFrom < 0 {
-		rangeFrom = fileSize + rangeFrom
-	}
-
-	rangeFromNew, err := f.Seek(rangeFrom, 0)
-	if err != nil {
-		f.Close()
-		return
-	}
-
-	if rangeTo < rangeFromNew {
-		rangeTo = rangeFromNew
-	}
-
-	var maxFileReadLen int64 = 1024 * 1024
-	for cursorFrom := rangeFromNew; cursorFrom <= rangeTo; cursorFrom += maxFileReadLen {
-		cursorTo := cursorFrom + maxFileReadLen - 1
-		if cursorTo > rangeTo {
-			cursorTo = rangeTo
-		}
-		buff := make([]byte, cursorTo-cursorFrom+1)
-
-		_, err := f.Seek(cursorFrom, 0)
-		if err != nil {
-			break
-		}
-
-		readN, readErr := f.Read(buff)
-		if readErr != nil {
-			break
-		}
-		if readN == 0 {
-			break
-		}
-
-		res.Body <- buff[:readN]
-		// time.Sleep(time.Millisecond * 10)
-	}
-
-	return
-}
-
 func fileServerHandleRequestGen(optRoot string) func(http.Request, *http.Response) {
 	rootDir = getRootDir(optRoot)
 	return fileServerHandleRequest
@@ -263,26 +203,6 @@ func fileServerHandleRequest(req http.Request, res *http.Response) {
 		return
 	}
 
-	res.Status = 200
-	fileIsModified := true
-	if len(req.Headers["If-Modified-Since"]) > 0 {
-		ifModifiedSince := http.ParseHTTPDate(req.Headers["If-Modified-Since"])
-		if !file.ModTime().After(ifModifiedSince) {
-			fileIsModified = false
-		}
-	}
-
-	if fileIsModified {
-		res.ContentType = mime.TypeByExtension(fp.Ext(filepath))
-		res.ContentLength = getFilesize(filepath)
-		err = downloadFileChan(filepath, req.Ranges, res)
-	} else {
-		res.Status = 304
-	}
-
+	res.Status = 400
 	defer close(res.Body)
-
-	if err != nil {
-		res.Status = 400
-	}
 }
